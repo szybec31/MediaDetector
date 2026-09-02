@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
@@ -15,6 +16,7 @@ interface Project {
 
 function HomePage() {
   const { t } = useLanguage();
+  const navigate = useNavigate();
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,6 +56,7 @@ function HomePage() {
   }, []);
 
   const handleNewProject = () => {
+    navigate("/projects/new");
     console.log("New project");
   };
 
@@ -62,6 +65,7 @@ function HomePage() {
   };
 
   const handleProfanityDictionary = () => {
+    navigate("/profanity-dictionary");
     console.log("Profanity dictionary");
   };
 

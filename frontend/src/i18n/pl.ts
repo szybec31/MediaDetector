@@ -38,6 +38,34 @@ const pl = {
   footer: {
     contact: "Kontakt",
   },
+  newProject: {
+    title: "Nowy projekt",
+    description: "Utwórz nowy projekt.",
+    name: "Nazwa projektu",
+    placeholder: "Nazwa projektu",
+    required: "Nazwa projektu jest wymagana.",
+    cancel: "Anuluj",
+    create: "Utwórz projekt",
+    creating: "Tworzenie...",
+    failed: "Nie udało się utworzyć projektu.",
+  },
+  profanityDictionary: {
+    title: "Słownik przekleństw",
+    description:
+      "Globalny słownik słów używanych podczas filtrowania treści.",
+    loading: "Ładowanie słownika...",
+    loadError: "Nie udało się wczytać słownika.",
+    saveError: "Nie udało się zapisać słownika.",
+    add: "Dodaj",
+    edit: "Edytuj",
+    delete: "Usuń",
+    save: "Zapisz",
+    cancel: "Anuluj",
+    saving: "Zapisywanie...",
+    saveDictionary: "Zapisz słownik",
+    back: "Powrót",
+    placeholder: "Wpisz słowo",
+  },
 };
 
 export default pl;
