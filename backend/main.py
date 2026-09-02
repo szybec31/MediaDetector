@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from schemas import Project, ProjectCreate
+from schemas import Project, ProjectCreate, ProfanityDictionary
 
 
 app = FastAPI(title="MediaDetector")
@@ -25,6 +25,7 @@ PROJECTS_DIR = Path(__file__).resolve().parent.parent / "data"
 
 PROJECTS_DIR.mkdir(parents=True, exist_ok=True)
 
+FILTER_WORDS_FILE = (Path(__file__).resolve().parent / "filter_words.json")
 
 @app.get("/")
 def root():
@@ -96,3 +97,41 @@ def create_project(project_data: ProjectCreate):
         )
 
     return project
+
+
+#
+@app.get("/api/profanity-dictionary", response_model=ProfanityDictionary)
+def get_profanity_dictionary():
+    if not FILTER_WORDS_FILE.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Słownik nie istnieje."
+        )
+
+    with FILTER_WORDS_FILE.open(
+        "r",
+        encoding="utf-8"
+    ) as file:
+        data = json.load(file)
+
+    return data
+
+@app.put(
+    "/api/profanity-dictionary",
+    response_model=ProfanityDictionary
+)
+def update_profanity_dictionary(
+    dictionary: ProfanityDictionary
+):
+    with FILTER_WORDS_FILE.open(
+        "w",
+        encoding="utf-8"
+    ) as file:
+        json.dump(
+            dictionary.model_dump(),
+            file,
+            ensure_ascii=False,
+            indent=2
+        )
+
+    return dictionary
