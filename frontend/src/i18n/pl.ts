@@ -66,6 +66,29 @@ const pl = {
     back: "Powrót",
     placeholder: "Wpisz słowo",
   },
+
+  projectDetails: {
+    loading: "Ładowanie projektu...",
+    project: "Projekt",
+    files: "Pliki projektu",
+    fileCount: "plików",
+    emptyFiles: "Projekt nie zawiera jeszcze żadnych plików.",
+    preview: "Podgląd pliku",
+    selectFile: "Wybierz plik z listy powyżej.",
+    modules: "Moduły",
+    modulesComingSoon: "Moduły AI będą tutaj.",
+    open: "Otwórz",
+    download: "Pobierz",
+    delete: "Usuń",
+    back: "Powrót",
+    downloadAll: "Pobierz wszystkie pliki",
+    deleteProject: "Usuń projekt",
+    deleteConfirmation:
+      'Czy na pewno chcesz usunąć projekt "{name}"?',
+    loadError: "Nie udało się wczytać projektu.",
+    deleteError: "Nie udało się usunąć projektu.",
+  },
+  
 };
 
 export default pl;

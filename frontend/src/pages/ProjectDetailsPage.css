@@ -1,0 +1,139 @@
+.project-details-content {
+  flex: 1;
+  min-width: 0;
+  padding: 32px;
+  overflow-y: auto;
+}
+
+.project-details-header {
+  margin-bottom: 24px;
+}
+
+.project-details-header h1 {
+  margin: 0 0 6px;
+  color: #f3f4f6;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.project-details-meta {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.project-section {
+  margin-bottom: 24px;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  background: #1f2937;
+  overflow: hidden;
+}
+
+.project-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #374151;
+  background: #151d2b;
+}
+
+.project-section-header h2 {
+  margin: 0;
+  color: #f3f4f6;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.project-section-header span {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.project-empty,
+.project-preview-empty {
+  padding: 32px 20px;
+  color: #6b7280;
+  text-align: center;
+}
+
+.project-files {
+  display: flex;
+  flex-direction: column;
+}
+
+.project-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #374151;
+}
+
+.project-file:last-child {
+  border-bottom: none;
+}
+
+.project-file:hover {
+  background: #263244;
+}
+
+.project-file-name {
+  color: #e5e7eb;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.project-file-meta {
+  margin-top: 4px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.project-file-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.project-file-actions button {
+  padding: 6px 10px;
+  border: 1px solid #4b5563;
+  border-radius: 5px;
+  background: transparent;
+  color: #d1d5db;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.project-file-actions button:hover {
+  background: #374151;
+  color: #ffffff;
+}
+
+.project-modules {
+  padding: 20px;
+}
+
+.project-module {
+  padding: 20px;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  color: #9ca3af;
+}
+
+@media (max-width: 700px) {
+  .project-details-content {
+    padding: 24px;
+  }
+
+  .project-file {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .project-file-actions {
+    width: 100%;
+  }
+}

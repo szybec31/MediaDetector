@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../i18n";
 import "./ProfanityDictionaryPage.css";
 
+import Header from "../components/Header";
+import Footer from "../components/Footer";
+import InfoOverlay from "../components/InfoOverlay";
+
 interface ProfanityDictionary {
   pl: string[];
   en: string[];
@@ -34,6 +38,7 @@ function ProfanityDictionaryPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [showInfo, setShowInfo] = useState(false);
 
   useEffect(() => {
     const loadDictionary = async () => {
@@ -188,8 +193,8 @@ function ProfanityDictionaryPage() {
     }
   };
 
-  const renderDictionaryColumn = (
-    language: DictionaryLanguage
+ const renderDictionaryColumn = (
+  language: DictionaryLanguage
   ) => {
     return (
       <section className="dictionary-column">
@@ -199,61 +204,65 @@ function ProfanityDictionaryPage() {
             : "English"}
         </h2>
 
-        <div className="dictionary-list">
-          {dictionary[language].map(
-            (word, index) => {
-              const isEditing =
-                editing?.language === language &&
-                editing.index === index;
+        <table className="dictionary-table">
+          <thead>
+            <tr>
+              <th>
+                {language === "pl"
+                  ? "Słowo"
+                  : "Word"}
+              </th>
+              <th>
+                {t.profanityDictionary.edit}
+              </th>
+              <th>
+                {t.profanityDictionary.delete}
+              </th>
+            </tr>
+          </thead>
 
-              return (
-                <div
-                  className="dictionary-word"
-                  key={`${language}-${index}`}
-                >
-                  {isEditing ? (
-                    <>
-                      <input
-                        type="text"
-                        value={editing.value}
-                        onChange={(event) =>
-                          setEditing({
-                            ...editing,
-                            value:
-                              event.target.value,
-                          })
-                        }
-                        autoFocus
-                      />
+          <tbody>
+            {dictionary[language].map(
+              (word, index) => {
+                const isEditing =
+                  editing?.language === language &&
+                  editing.index === index;
 
-                      <div className="dictionary-word-actions">
+                return (
+                  <tr
+                    key={`${language}-${index}`}
+                  >
+                    <td>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editing.value}
+                          onChange={(event) =>
+                            setEditing({
+                              ...editing,
+                              value:
+                                event.target.value,
+                            })
+                          }
+                          autoFocus
+                        />
+                      ) : (
+                        word
+                      )}
+                    </td>
+
+                    <td>
+                      {isEditing ? (
                         <button
                           type="button"
-                          onClick={
-                            saveEditing
-                          }
-                        >
-                          {t.profanityDictionary.save}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={
-                            cancelEditing
-                          }
+                          onClick={saveEditing}
                         >
                           {
                             t.profanityDictionary
-                              .cancel
+                              .save
                           }
                         </button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <span>{word}</span>
-
-                      <div className="dictionary-word-actions">
+                      ) : (
                         <button
                           type="button"
                           onClick={() =>
@@ -268,7 +277,21 @@ function ProfanityDictionaryPage() {
                               .edit
                           }
                         </button>
+                      )}
+                    </td>
 
+                    <td>
+                      {isEditing ? (
+                        <button
+                          type="button"
+                          onClick={cancelEditing}
+                        >
+                          {
+                            t.profanityDictionary
+                              .cancel
+                          }
+                        </button>
+                      ) : (
                         <button
                           type="button"
                           onClick={() =>
@@ -283,14 +306,14 @@ function ProfanityDictionaryPage() {
                               .delete
                           }
                         </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              );
-            }
-          )}
-        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              }
+            )}
+          </tbody>
+        </table>
 
         <div className="dictionary-add">
           <input
@@ -328,76 +351,104 @@ function ProfanityDictionaryPage() {
 
   if (loading) {
     return (
-      <div className="dictionary-page">
-        <div className="dictionary-container">
-          <p>
-            {t.profanityDictionary.loading}
-          </p>
-        </div>
+      <div className="app">
+        <Header
+          onInfo={() => setShowInfo(true)}
+        />
+
+        <main className="dictionary-page">
+          <div className="dictionary-container">
+            <p>
+              {t.profanityDictionary.loading}
+            </p>
+          </div>
+        </main>
+
+        <Footer />
+
+        {showInfo && (
+          <InfoOverlay
+            onClose={() => setShowInfo(false)}
+          />
+        )}
       </div>
     );
   }
 
   return (
-    <div className="dictionary-page">
-      <div className="dictionary-container">
-        <div className="dictionary-header">
-          <div>
-            <h1>
-              {t.profanityDictionary.title}
-            </h1>
+    <div className="app">
+      <Header
+        onInfo={() => setShowInfo(true)}
+      />
 
-            <p>
-              {
-                t.profanityDictionary
-                  .description
-              }
-            </p>
+      <main className="dictionary-page">
+        <div className="dictionary-container">
+          <div className="dictionary-header">
+            <div>
+              <h1>
+                {t.profanityDictionary.title}
+              </h1>
+
+              <p>
+                {
+                  t.profanityDictionary
+                    .description
+                }
+              </p>
+            </div>
+
+            <button
+              type="button"
+              className="dictionary-back-button"
+              onClick={() => navigate("/")}
+            >
+              {t.profanityDictionary.back}
+            </button>
           </div>
 
-          <button
-            type="button"
-            className="dictionary-back-button"
-            onClick={() => navigate("/")}
-          >
-            {t.profanityDictionary.back}
-          </button>
-        </div>
-
-        <div className="dictionary-columns">
-          {renderDictionaryColumn("pl")}
-          {renderDictionaryColumn("en")}
-        </div>
-
-        {error && (
-          <div className="dictionary-error">
-            {error}
+          <div className="dictionary-columns">
+            {renderDictionaryColumn("pl")}
+            {renderDictionaryColumn("en")}
           </div>
-        )}
 
-        <div className="dictionary-footer">
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={() => navigate("/")}
-            disabled={saving}
-          >
-            {t.profanityDictionary.cancel}
-          </button>
+          {error && (
+            <div className="dictionary-error">
+              {error}
+            </div>
+          )}
 
-          <button
-            type="button"
-            className="primary-button"
-            onClick={saveDictionary}
-            disabled={saving}
-          >
-            {saving
-              ? t.profanityDictionary.saving
-              : t.profanityDictionary
-                  .saveDictionary}
-          </button>
+          <div className="dictionary-footer">
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => navigate("/")}
+              disabled={saving}
+            >
+              {t.profanityDictionary.cancel}
+            </button>
+
+            <button
+              type="button"
+              className="primary-button"
+              onClick={saveDictionary}
+              disabled={saving}
+            >
+              {saving
+                ? t.profanityDictionary.saving
+                : t.profanityDictionary
+                    .saveDictionary}
+            </button>
+          </div>
         </div>
-      </div>
+      </main>
+
+      <Footer />
+
+      {showInfo && (
+        <InfoOverlay
+          onClose={() => setShowInfo(false)}
+        />
+      )}
     </div>
   );
 }

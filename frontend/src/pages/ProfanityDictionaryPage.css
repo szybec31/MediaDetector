@@ -146,6 +146,77 @@
   overflow-y: auto;
 }
 
+
+
+.dictionary-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #374151;
+  background: #1f2937;
+}
+
+.dictionary-table th,
+.dictionary-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #374151;
+  text-align: left;
+}
+
+.dictionary-table th {
+  background: #151d2b;
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.dictionary-table td {
+  color: #e5e7eb;
+}
+
+.dictionary-table th:nth-child(2),
+.dictionary-table th:nth-child(3),
+.dictionary-table td:nth-child(2),
+.dictionary-table td:nth-child(3) {
+  width: 90px;
+  text-align: center;
+}
+
+.dictionary-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.dictionary-table tbody tr:hover {
+  background: #263244;
+}
+
+.dictionary-table input {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid #4b5563;
+  border-radius: 5px;
+  outline: none;
+  background: #111827;
+  color: #e5e7eb;
+}
+
+.dictionary-table input:focus {
+  border-color: #6b7280;
+}
+
+.dictionary-table button {
+  padding: 6px 9px;
+  border: 1px solid #4b5563;
+  border-radius: 5px;
+  background: transparent;
+  color: #d1d5db;
+  cursor: pointer;
+}
+
+.dictionary-table button:hover {
+  background: #374151;
+}
+
 @media (max-width: 700px) {
   .dictionary-columns {
     grid-template-columns: 1fr;
@@ -161,11 +232,4 @@
     flex-direction: column;
   }
 
-  .dictionary-word {
-    align-items: flex-start;
-  }
-
-  .dictionary-word-actions {
-    flex-direction: column;
-  }
 }

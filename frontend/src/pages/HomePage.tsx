@@ -10,6 +10,7 @@ import InfoOverlay from "../components/InfoOverlay";
 import { useLanguage } from "../i18n";
 
 interface Project {
+  id: number;
   name: string;
   created_at: string;
 }
@@ -69,13 +70,8 @@ function HomePage() {
     console.log("Profanity dictionary");
   };
 
-  const handleProjectClick = (
-    project: Project
-  ) => {
-    console.log(
-      "Open project:",
-      project.name
-    );
+  const handleProjectClick = (projectId: number) => {
+    navigate(`/projects/${projectId}`);
   };
 
   return (
@@ -124,15 +120,12 @@ function HomePage() {
               <div className="projects-scroll">
                 <div className="projects-grid">
                   {projects.map((project) => (
-                    <ProjectCard
-                      key={project.name}
-                      project={project}
-                      onClick={() =>
-                        handleProjectClick(
-                          project
-                        )
-                      }
-                    />
+                  <ProjectCard
+                    project={project}
+                    onClick={() =>
+                      handleProjectClick(project.id)
+                    }
+                  />
                   ))}
                 </div>
               </div>
