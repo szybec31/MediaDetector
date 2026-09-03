@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../i18n";
 import "./NewProjectPage.css";
 
+import Header from "../components/Header";
+import Footer from "../components/Footer";
+import InfoOverlay from "../components/InfoOverlay";
+
 function NewProjectPage() {
   const navigate = useNavigate();
   const { t } = useLanguage();
@@ -10,6 +14,7 @@ function NewProjectPage() {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
 
   const handleSubmit = async (
     event: FormEvent<HTMLFormElement>
@@ -68,6 +73,9 @@ function NewProjectPage() {
 
   return (
     <div className="app">
+      <Header
+        onInfo={() => setShowInfo(true)}
+      />
       <main className="form-page">
         <div className="form-container">
           <div className="form-header">
@@ -128,6 +136,13 @@ function NewProjectPage() {
           </form>
         </div>
       </main>
+      <Footer />
+
+      {showInfo && (
+        <InfoOverlay
+          onClose={() => setShowInfo(false)}
+        />
+      )}
     </div>
   );
 }

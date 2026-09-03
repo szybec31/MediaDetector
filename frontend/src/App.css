@@ -151,6 +151,60 @@ button {
   color: #ffffff;
 }
 
+.project-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  padding: 24px 16px;
+  background: #151d2b;
+  border-right: 1px solid #374151;
+}
+
+.project-sidebar-section h2 {
+  margin: 0 0 16px;
+  padding: 0 8px;
+  color: #9ca3af;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.project-sidebar-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 11px 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #d1d5db;
+  text-align: left;
+  cursor: pointer;
+}
+
+.project-sidebar-button span {
+  width: 20px;
+  color: #9ca3af;
+  font-size: 18px;
+  text-align: center;
+}
+
+.project-sidebar-button:hover {
+  background: #263244;
+  color: #ffffff;
+}
+
+.project-sidebar-button.danger {
+  color: #fca5a5;
+}
+
+.project-sidebar-button.danger:hover {
+  background: #3f2428;
+  color: #fecaca;
+}
+
 /* Content */
 
 .content {
