@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import Header from "../components/Header";
-import Sidebar from "../components/Sidebar";
-import ProjectCard from "../components/ProjectCard";
-import Footer from "../components/Footer";
-import InfoOverlay from "../components/InfoOverlay";
+import Header from "./Header";
+import Sidebar from "./Sidebar";
+import ProjectCard from "./ProjectCard";
+import Footer from "../Footer";
+import InfoOverlay from "../InfoOverlay";
 
-import { useLanguage } from "../i18n";
+import { useLanguage } from "../../i18n";
 
 interface Project {
   id: number;

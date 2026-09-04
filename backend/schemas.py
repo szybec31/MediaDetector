@@ -20,6 +20,7 @@ class ProjectFile(BaseModel):
     name: str
     size: int
     type: str
+    source: str = "original"
 
 
 class ProjectDetails(BaseModel):

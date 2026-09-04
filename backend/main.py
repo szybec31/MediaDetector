@@ -1,13 +1,11 @@
+from schemas import Project, ProjectCreate, ProfanityDictionary, ProjectDetails
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, HTTPException, File, UploadFile
 from datetime import datetime
+from pathlib import Path
+import shutil
 import json
 import re
-from pathlib import Path
-
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-
-from schemas import Project, ProjectCreate, ProfanityDictionary, ProjectDetails
-import shutil
 
 app = FastAPI(title="MediaDetector")
 
@@ -266,3 +264,127 @@ def delete_project(project_id: int):
     }
 
 # --------------- Endpointy dotyczące akcji na plikach ---------------
+
+# Upload plików do projektu
+@app.post("/api/projects/{project_id}/files")
+async def upload_project_files(
+    project_id: int,
+    files: list[UploadFile] = File(...),
+):
+    project_dir = find_project_by_id(project_id)
+
+    if project_dir is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Projekt nie istnieje.",
+        )
+
+    if not files:
+        raise HTTPException(
+            status_code=400,
+            detail="Nie przesłano żadnych plików.",
+        )
+
+    original_dir = project_dir
+    original_dir.mkdir(exist_ok=True)
+
+    project_file = project_dir / "project_info.json"
+
+    try:
+        with project_file.open("r", encoding="utf-8") as file:
+            project_info = json.load(file)
+    except (json.JSONDecodeError, OSError):
+        raise HTTPException(
+            status_code=500,
+            detail="Nie można odczytać informacji o projekcie.",
+        )
+
+    if "files" not in project_info:
+        project_info["files"] = []
+
+    saved_files = []
+
+    for uploaded_file in files:
+        if not uploaded_file.filename:
+            continue
+
+        filename = Path(uploaded_file.filename).name
+
+        if not filename:
+            continue
+
+        content_type = uploaded_file.content_type or ""
+
+        if not (
+            content_type.startswith("audio/")
+            or content_type.startswith("video/")
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Plik '{filename}' nie jest plikiem "
+                    "audio ani video."
+                ),
+            )
+
+        destination = original_dir / filename
+
+        if destination.exists():
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"Plik o nazwie '{filename}' "
+                    "już istnieje w projekcie."
+                ),
+            )
+
+        try:
+            with destination.open("wb") as output_file:
+                shutil.copyfileobj(
+                    uploaded_file.file,
+                    output_file,
+                )
+
+            file_size = destination.stat().st_size
+
+        except OSError:
+            raise HTTPException(
+                status_code=500,
+                detail=(
+                    f"Nie udało się zapisać pliku "
+                    f"'{filename}'."
+                ),
+            )
+
+        file_info = {
+            "name": filename,
+            "size": file_size,
+            "type": content_type,
+            "source": "original",
+        }
+
+        project_info["files"].append(file_info)
+        saved_files.append(file_info)
+
+    try:
+        with project_file.open("w", encoding="utf-8") as file:
+            json.dump(
+                project_info,
+                file,
+                ensure_ascii=False,
+                indent=2,
+            )
+    except OSError:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Pliki zostały zapisane, ale nie udało się "
+                "zaktualizować project_info.json."
+            ),
+        )
+
+    return {
+        "message": "Pliki zostały dodane.",
+        "files": saved_files,
+    }
+

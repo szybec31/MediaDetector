@@ -5,6 +5,7 @@ const pl = {
 
   header: {
     info: "Informacje",
+    back: "Powrót"
   },
 
   sidebar: {
@@ -87,6 +88,26 @@ const pl = {
       'Czy na pewno chcesz usunąć projekt "{name}"?',
     loadError: "Nie udało się wczytać projektu.",
     deleteError: "Nie udało się usunąć projektu.",
+  },
+  addSourceFile: {
+    title: "Dodaj pliki źródłowe",
+    description: "Dodaj źródłowe pliki audio lub video do projektu.",
+    dropzone: {
+      title: "Przeciągnij pliki tutaj",
+      description: "lub kliknij, aby wybrać pliki z dysku",
+      active: "Upuść pliki tutaj",
+      supported: "Obsługiwane pliki audio i video",
+    },
+    selectedFiles: "Wybrane pliki",
+    removeFile: "Usuń plik",
+    upload: "Dodaj pliki",
+    uploading: "Dodawanie...",
+    error: {
+      noProject: "Nie znaleziono projektu.",
+      noFiles: "Wybierz przynajmniej jeden plik.",
+      upload: "Nie udało się dodać plików.",
+    },
+    success: "Pliki zostały dodane.",
   },
   
 };
