@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import Header from "../components/Header";
-import ProjectSidebar  from "../components/ProjectSidebar";
-import Footer from "../components/Footer";
-import InfoOverlay from "../components/InfoOverlay";
+import Header from "../Homepage/Header";
+import ProjectSidebar  from "./ProjectSidebar";
+import Footer from "../Footer";
+import InfoOverlay from "../InfoOverlay";
 
 import "./ProjectDetailsPage.css";
-import { useLanguage } from "../i18n";
+import { useLanguage } from "../../i18n";
 
 interface ProjectFile {
   name: string;
@@ -152,7 +152,6 @@ function ProjectDetailsPage() {
 
       <div className="app-body">
         <ProjectSidebar
-        onBack={handleBack}
         onDeleteProject={handleDeleteProject}
         onDownloadAll={handleDownloadAll}
         />
@@ -264,7 +263,22 @@ function ProjectDetailsPage() {
 
                 <div className="project-modules">
                   <div className="project-module">
-                    {t.projectDetails.modulesComingSoon}
+
+                    <button
+                      type="button"
+                      className="project-module-button"
+                      onClick={() =>
+                        navigate(
+                          `/projects/${project.id}/modules/add-source-files`
+                        )
+                      }
+                    >
+                      Dodaj pliki źródłowe
+                    </button>
+
+
+
+                    
                   </div>
                 </div>
               </section>

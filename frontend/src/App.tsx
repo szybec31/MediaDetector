@@ -1,15 +1,12 @@
 import "./App.css";
+import {BrowserRouter,Routes,Route,} from "react-router-dom";
 
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-} from "react-router-dom";
+import HomePage from "./components/Homepage/HomePage";
+import NewProjectPage from "./components/NewProject/NewProjectPage";
+import ProfanityDictionaryPage from "./components/ProfanityDictionary/ProfanityDictionaryPage";
+import ProjectDetailsPage from "./components/ProjectDetails/ProjectDetailsPage";
 
-import HomePage from "./pages/HomePage";
-import NewProjectPage from "./pages/NewProjectPage";
-import ProfanityDictionaryPage from "./pages/ProfanityDictionaryPage";
-import ProjectDetailsPage from "./pages/ProjectDetailsPage";
+import AddSourceFile from "./components/Modules/AddSourceFile/AddSourceFile";
 
 function App() {
   return (
@@ -34,6 +31,10 @@ function App() {
           path="/projects/:projectId"
           element={<ProjectDetailsPage />}
         />
+        <Route
+          path="/projects/:projectId/modules/add-source-files"
+          element={<AddSourceFile />}
+        />
 
       </Routes>
     </BrowserRouter>
@@ -41,3 +42,7 @@ function App() {
 }
 
 export default App;
+
+/*
+
+*/

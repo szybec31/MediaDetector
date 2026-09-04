@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLanguage } from "../i18n";
+import { useLanguage } from "../../i18n";
 import "./ProfanityDictionaryPage.css";
 
-import Header from "../components/Header";
-import Footer from "../components/Footer";
-import InfoOverlay from "../components/InfoOverlay";
+import Header from "../Homepage/Header";
+import Footer from "../Footer";
+import InfoOverlay from "../InfoOverlay";
 
 interface ProfanityDictionary {
   pl: string[];
@@ -396,14 +396,6 @@ function ProfanityDictionaryPage() {
                 }
               </p>
             </div>
-
-            <button
-              type="button"
-              className="dictionary-back-button"
-              onClick={() => navigate("/")}
-            >
-              {t.profanityDictionary.back}
-            </button>
           </div>
 
           <div className="dictionary-columns">

@@ -1,32 +1,14 @@
-import { useLanguage } from "../i18n";
+import { useLanguage } from "../../i18n";
 import { useNavigate, useParams } from "react-router-dom";
-
 interface HeaderProps {
   onInfo: () => void;
 }
 
 function Header({ onInfo }: HeaderProps) {
-  const { projectId } =
-    useParams<{ projectId: string }>();
-
+  const { language, setLanguage, t } = useLanguage();
   const navigate = useNavigate();
-
-  const {
-    language,
-    setLanguage,
-    t,
-  } = useLanguage();
-
   const handleHomeClick = () => {
     navigate("/");
-  };
-
-  const handleBackClick = () => {
-    if (projectId) {
-      navigate(`/projects/${projectId}`);
-    } else {
-      navigate("/");
-    }
   };
 
   return (
@@ -45,14 +27,12 @@ function Header({ onInfo }: HeaderProps) {
         <button
           type="button"
           className="back-button"
-          onClick={handleBackClick}
+          onClick={handleHomeClick}
         >
           {t.header.back}
         </button>
-
         <div className="language-switcher">
           <button
-            type="button"
             className={
               language === "pl"
                 ? "language-button active"
@@ -68,7 +48,6 @@ function Header({ onInfo }: HeaderProps) {
           </span>
 
           <button
-            type="button"
             className={
               language === "en"
                 ? "language-button active"
@@ -81,7 +60,6 @@ function Header({ onInfo }: HeaderProps) {
         </div>
 
         <button
-          type="button"
           className="info-button"
           onClick={onInfo}
           aria-label={t.header.info}

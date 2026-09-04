@@ -5,6 +5,7 @@ const en = {
 
   header: {
     info: "Information",
+    back: "Back"
   },
 
   sidebar: {
@@ -88,6 +89,27 @@ const en = {
       'Are you sure you want to delete project "{name}"?',
     loadError: "Failed to load the project.",
     deleteError: "Failed to delete the project.",
+  },
+
+  addSourceFile: {
+    title: "Add source files",
+    description: "Add source audio or video files to the project.",
+    dropzone: {
+      title: "Drag files here",
+      description: "or click to select files from your computer",
+      active: "Drop files here",
+      supported: "Supported audio and video files",
+    },
+    selectedFiles: "Selected files",
+    removeFile: "Remove file",
+    upload: "Add files",
+    uploading: "Adding...",
+    error: {
+      noProject: "Project not found.",
+      noFiles: "Select at least one file.",
+      upload: "Failed to add files.",
+    },
+    success: "Files have been added.",
   },
 
 };
