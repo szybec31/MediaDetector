@@ -3,11 +3,13 @@ import { useLanguage } from "../../i18n";
 interface ProjectSidebarProps {
   onDeleteProject: () => void;
   onDownloadAll: () => void;
+  fileCount: number;
 }
 
 function ProjectSidebar({
   onDeleteProject,
   onDownloadAll,
+  fileCount,
 }: ProjectSidebarProps) {
   const { t } = useLanguage();
 
@@ -19,6 +21,7 @@ function ProjectSidebar({
         <button
           className="project-sidebar-button"
           onClick={onDownloadAll}
+          disabled={fileCount === 0}
         >
           <span>↓</span>
           {t.projectDetails.downloadAll}
