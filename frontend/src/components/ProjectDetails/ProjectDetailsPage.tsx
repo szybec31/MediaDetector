@@ -34,8 +34,7 @@ function ProjectDetailsPage() {
   const [error, setError] = useState("");
   const [showInfo, setShowInfo] = useState(false);
 
-  useEffect(() => {
-    const loadProject = async () => {
+      const loadProject = async () => {
       try {
         setLoading(true);
         setError("");
@@ -70,6 +69,8 @@ function ProjectDetailsPage() {
         setLoading(false);
       }
     };
+
+  useEffect(() => {
 
     loadProject();
   }, [projectId]);
@@ -144,6 +145,61 @@ function ProjectDetailsPage() {
     navigate("/profanity-dictionary");
   };
 
+  const handleDownloadFile = (filename: string) => {
+  const encodedFilename = encodeURIComponent(filename);
+
+  window.open(
+    `http://localhost:8000/api/projects/${projectId}/files/download/${encodedFilename}`,
+    "_blank"
+  );
+  };
+
+  const handleDownloadAllFiles = () => {
+  window.open(
+    `http://localhost:8000/api/projects/${projectId}/files/download-all`,
+    "_blank"
+    );
+  };  
+
+  const handleDeleteFile = async (filename: string) => {
+  const confirmed = window.confirm(
+    `Czy na pewno chcesz usunąć plik "${filename}"?`
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    const encodedFilename = encodeURIComponent(filename);
+
+    const response = await fetch(
+      `http://localhost:8000/api/projects/${projectId}/files/${encodedFilename}`,
+      {
+        method: "DELETE",
+      }
+    );
+
+    if (!response.ok) {
+      const data = await response.json();
+
+      throw new Error(
+        data.detail || "Nie udało się usunąć pliku."
+      );
+    }
+
+    await loadProject();
+  } catch (error) {
+    console.error(error);
+
+    if (error instanceof Error) {
+      setError(error.message);
+    } else {
+      setError("Nie udało się usunąć pliku.");
+    }
+  }
+  };
+
   return (
     <div className="app">
       <Header
@@ -153,7 +209,9 @@ function ProjectDetailsPage() {
       <div className="app-body">
         <ProjectSidebar
         onDeleteProject={handleDeleteProject}
-        onDownloadAll={handleDownloadAll}
+        onDownloadAll={handleDownloadAllFiles}
+        fileCount={project?.files?.length ?? 0}
+        
         />
 
         <main className="project-details-content">
@@ -225,8 +283,9 @@ function ProjectDetailsPage() {
                           <button
                             type="button"
                             onClick={() =>
-                              console.log("Pobierz:", file.name)
+                              handleDownloadFile(file.name)
                             }
+                            
                           >
                             {t.projectDetails.download}
                           </button>
@@ -234,7 +293,7 @@ function ProjectDetailsPage() {
                           <button
                             type="button"
                             onClick={() =>
-                              console.log("Usuń:", file.name)
+                              handleDeleteFile(file.name)
                             }
                           >
                             {t.projectDetails.delete}

@@ -1,8 +1,11 @@
 from schemas import Project, ProjectCreate, ProfanityDictionary, ProjectDetails
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, HTTPException, File, UploadFile
+from fastapi import FastAPI, HTTPException, File, UploadFile, BackgroundTasks
+from fastapi.responses import FileResponse
 from datetime import datetime
 from pathlib import Path
+import tempfile
+import zipfile
 import shutil
 import json
 import re
@@ -388,3 +391,243 @@ async def upload_project_files(
         "files": saved_files,
     }
 
+
+# Pobieranie pojedynczego, wszystkich plików, usunięcię
+def load_project_info(project_dir: Path) -> dict:
+    project_file = project_dir / "project_info.json"
+
+    try:
+        with project_file.open("r", encoding="utf-8") as file:
+            return json.load(file)
+
+    except (OSError, json.JSONDecodeError):
+        raise HTTPException(
+            status_code=500,
+            detail="Nie można odczytać informacji o projekcie.",
+        )
+
+def save_project_info(
+    project_dir: Path,
+    project_info: dict,
+) -> None:
+    project_file = project_dir / "project_info.json"
+
+    try:
+        with project_file.open("w", encoding="utf-8") as file:
+            json.dump(
+                project_info,
+                file,
+                ensure_ascii=False,
+                indent=2,
+            )
+
+    except OSError:
+        raise HTTPException(
+            status_code=500,
+            detail="Nie można zapisać informacji o projekcie.",
+        )
+
+def find_project_file(
+    project_dir: Path,
+    filename: str,
+) -> tuple[dict, Path]:
+    project_info = load_project_info(project_dir)
+
+    project_files = project_info.get("files", [])
+
+    for file_info in project_files:
+        if (
+            file_info.get("name") == filename
+            and file_info.get("source", "original") == "original"
+        ):
+            file_path = (
+                project_dir
+                / filename
+            )
+
+            if not file_path.exists() or not file_path.is_file():
+                raise HTTPException(
+                    status_code=404,
+                    detail="Plik nie istnieje na dysku.",
+                )
+
+            return project_info, file_path
+
+    raise HTTPException(
+        status_code=404,
+        detail="Plik nie należy do tego projektu.",
+    )
+
+
+@app.get(
+    "/api/projects/{project_id}/files/download-all"
+)
+def download_all_project_files(
+    project_id: int,
+    background_tasks: BackgroundTasks,
+):
+    project_dir = find_project_by_id(project_id)
+
+    if project_dir is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Projekt nie istnieje.",
+        )
+
+    project_info = load_project_info(project_dir)
+
+    project_files = project_info.get("files", [])
+
+    if not project_files:
+        raise HTTPException(
+            status_code=404,
+            detail="Projekt nie zawiera żadnych plików.",
+        )
+
+    original_dir = project_dir
+
+    if not original_dir.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Folder z plikami nie istnieje.",
+        )
+
+    temporary_file = tempfile.NamedTemporaryFile(
+        delete=False,
+        suffix=".zip",
+    )
+
+    zip_path = Path(temporary_file.name)
+    temporary_file.close()
+
+    try:
+        with zipfile.ZipFile(
+            zip_path,
+            mode="w",
+            compression=zipfile.ZIP_DEFLATED,
+        ) as archive:
+            added_files = 0
+
+            for file_info in project_files:
+                if file_info.get("source", "original") != "original":
+                    continue
+
+                filename = file_info.get("name")
+
+                if not filename:
+                    continue
+
+                file_path = original_dir / filename
+
+                if not file_path.exists() or not file_path.is_file():
+                    continue
+
+                archive.write(
+                    file_path,
+                    arcname=filename,
+                )
+
+                added_files += 1
+
+        if added_files == 0:
+            zip_path.unlink(missing_ok=True)
+
+            raise HTTPException(
+                status_code=404,
+                detail="Nie znaleziono plików do pobrania.",
+            )
+
+    except HTTPException:
+        raise
+
+    except OSError:
+        zip_path.unlink(missing_ok=True)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Nie udało się przygotować archiwum ZIP.",
+        )
+
+    background_tasks.add_task(
+        zip_path.unlink,
+        missing_ok=True,
+    )
+
+    return FileResponse(
+        path=zip_path,
+        filename=f"{project_info['name']}.zip",
+        media_type="application/zip",
+    )
+
+@app.get(
+    "/api/projects/{project_id}/files/download/{filename}"
+)
+def download_project_file(
+    project_id: int,
+    filename: str,
+):
+    project_dir = find_project_by_id(project_id)
+
+    if project_dir is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Projekt nie istnieje.",
+        )
+
+    _, file_path = find_project_file(
+        project_dir,
+        filename,
+    )
+
+    return FileResponse(
+        path=file_path,
+        filename=file_path.name,
+        media_type="application/octet-stream",
+    )
+
+
+@app.delete("/api/projects/{project_id}/files/{filename}")
+def delete_project_file(
+    project_id: int,
+    filename: str,
+):
+    project_dir = find_project_by_id(project_id)
+
+    if project_dir is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Projekt nie istnieje.",
+        )
+
+    project_info, file_path = find_project_file(
+        project_dir,
+        filename,
+    )
+
+    try:
+        file_path.unlink()
+
+    except OSError:
+        raise HTTPException(
+            status_code=500,
+            detail="Nie udało się usunąć pliku.",
+        )
+
+    project_info["files"] = [
+        file_info
+        for file_info in project_info.get("files", [])
+        if not (
+            file_info.get("name") == filename
+            and file_info.get("source", "original") == "original"
+        )
+    ]
+
+    save_project_info(
+        project_dir,
+        project_info,
+    )
+
+    return {
+        "message": "Plik został usunięty.",
+        "filename": filename,
+    }
