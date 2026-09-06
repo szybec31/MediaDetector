@@ -13,6 +13,7 @@ interface ProjectFile {
   name: string;
   size: number;
   type: string;
+  source?: string;
 }
 
 interface ProjectDetails {
@@ -21,18 +22,97 @@ interface ProjectDetails {
   created_at: string;
   files: ProjectFile[];
 }
+const isTextFile = (file: ProjectFile) => {
+  const textExtensions = [
+    ".txt",
+    ".json",
+    ".srt",
+    ".vtt",
+    ".csv",
+    ".md",
+    ".log",
+  ];
+
+  return textExtensions.some((extension) =>
+    file.name.toLowerCase().endsWith(extension)
+  );
+};
+
+type ModuleKind = "audio" | "video";
+
+interface ProjectModule {
+  id: string;
+  label: string;
+  kind: ModuleKind;
+  path: string;
+}
+
 
 function ProjectDetailsPage() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const { t } = useLanguage();
 
-  const [project, setProject] =
-    useState<ProjectDetails | null>(null);
+  const [project, setProject] = useState<ProjectDetails | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showInfo, setShowInfo] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<ProjectFile | null>(null);
+  const [previewContent, setPreviewContent] = useState<string>("");
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState("");
+
+  const projectModules: ProjectModule[] = [
+  {
+    id: "upload-plików",
+    label: "Upload Plików",
+    kind: "video",
+    path: `/projects/${projectId}/modules/add-source-files`,
+  },
+  {
+    id: "split",
+    label: "Rozdzielenie audio i video na osobne pliki",
+    kind: "video",
+    path: `/projects/${projectId}/modules/split`,
+  },
+  {
+    id: "conversion",
+    label: "Konwersja na wybrany format",
+    kind: "video",
+    path: `/projects/${projectId}/modules/split`,
+  },
+  {
+    id: "transkrypcja",
+    label: "Speach to Text",
+    kind: "audio",
+    path: `/projects/${projectId}/modules/stt`,
+  },
+  {
+    id: "word-filter",
+    label: "Wykrywanie słów z słownika",
+    kind: "audio",
+    path: `/projects/${projectId}/modules/audio-cleanup`,
+  },
+  {
+    id: "mute",
+    label: "Wyciszenie przekleństw",
+    kind: "audio",
+    path: `/projects/${projectId}/modules/scene-detection`,
+  },
+  {
+    id: "subtitles",
+    label: "Generowanie napisów do filmów",
+    kind: "video",
+    path: `/projects/${projectId}/modules/subtitles`,
+  },
+  {
+    id: "blurowanie-twarzy",
+    label: "Blurowanie twarzy",
+    kind: "video",
+    path: `/projects/${projectId}/modules/blur`,
+  },
+];
 
       const loadProject = async () => {
       try {
@@ -200,6 +280,53 @@ function ProjectDetailsPage() {
   }
   };
 
+  const handleOpenFile = async (file: ProjectFile) => {
+    setSelectedFile(file);
+    setPreviewContent("");
+    setPreviewError("");
+
+    if (!isTextFile(file)) {
+      return;
+    }
+
+    try {
+      setPreviewLoading(true);
+
+      const encodedFilename = encodeURIComponent(file.name);
+
+      const response = await fetch(
+        `http://localhost:8000/api/projects/${projectId}/files/download/${encodedFilename}`
+      );
+
+      if (!response.ok) {
+        const data = await response.json();
+
+        throw new Error(
+          data.detail || "Nie udało się odczytać pliku."
+        );
+      }
+
+      const content = await response.text();
+
+      setPreviewContent(content);
+    } catch (error) {
+      console.error(error);
+
+      if (error instanceof Error) {
+        setPreviewError(error.message);
+      } else {
+        setPreviewError("Nie udało się odczytać pliku.");
+      }
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const getFileUrl = (filename: string) => {
+    const encodedFilename = encodeURIComponent(filename);
+    return `http://localhost:8000/api/projects/${projectId}/files/download/${encodedFilename}`;
+  };
+
   return (
     <div className="app">
       <Header
@@ -273,9 +400,7 @@ function ProjectDetailsPage() {
                         <div className="project-file-actions">
                           <button
                             type="button"
-                            onClick={() =>
-                              console.log("Odtwórz:", file.name)
-                            }
+                            onClick={() => handleOpenFile(file)}
                           >
                             {t.projectDetails.open}
                           </button>
@@ -306,41 +431,103 @@ function ProjectDetailsPage() {
               </section>
 
               <section className="project-section">
-                <div className="project-section-header">
-                  <h2>{t.projectDetails.preview}</h2>
-                </div>
+              <div className="project-section-header">
+                <h2>{t.projectDetails.preview}</h2>
+              </div>
 
+              {!selectedFile ? (
                 <div className="project-preview-empty">
                   {t.projectDetails.selectFile}
                 </div>
-              </section>
-
-              <section className="project-section">
-                <div className="project-section-header">
-                  <h2>{t.projectDetails.modules}</h2>
-                </div>
-
-                <div className="project-modules">
-                  <div className="project-module">
-
-                    <button
-                      type="button"
-                      className="project-module-button"
-                      onClick={() =>
-                        navigate(
-                          `/projects/${project.id}/modules/add-source-files`
-                        )
-                      }
-                    >
-                      Dodaj pliki źródłowe
-                    </button>
-
-
-
-                    
+              ) : (
+                <div className="project-preview">
+                  <div className="project-preview-title">
+                    {selectedFile.name}
                   </div>
+
+                  {selectedFile.type.startsWith("video/") && (
+                    <video
+                      className="project-preview-video"
+                      controls
+                      src={getFileUrl(selectedFile.name)}
+                    >
+                      Twoja przeglądarka nie obsługuje odtwarzania wideo.
+                    </video>
+                  )}
+
+                  {selectedFile.type.startsWith("audio/") && (
+                    <audio
+                      className="project-preview-audio"
+                      controls
+                      src={getFileUrl(selectedFile.name)}
+                    >
+                      Twoja przeglądarka nie obsługuje odtwarzania audio.
+                    </audio>
+                  )}
+
+                  {isTextFile(selectedFile) && (
+                    <>
+                      {previewLoading && (
+                        <div className="project-preview-empty">
+                          Ładowanie zawartości pliku...
+                        </div>
+                      )}
+
+                      {previewError && (
+                        <div className="project-preview-empty error">
+                          {previewError}
+                        </div>
+                      )}
+
+                      {!previewLoading && !previewError && (
+                        <pre className="project-preview-text">
+                          {previewContent}
+                        </pre>
+                      )}
+                    </>
+                  )}
+
+                  {!selectedFile.type.startsWith("video/") &&
+                    !selectedFile.type.startsWith("audio/") &&
+                    !isTextFile(selectedFile) && (
+                      <div className="project-preview-empty">
+                        Podgląd tego typu pliku nie jest jeszcze obsługiwany.
+                      </div>
+                    )}
+
+                  <button
+                    type="button"
+                    className="project-preview-close"
+                    onClick={() => {
+                      setSelectedFile(null);
+                      setPreviewContent("");
+                      setPreviewError("");
+                    }}
+                  >
+                    Zamknij podgląd
+                  </button>
                 </div>
-              </section>
+              )}
+            </section>
+
+            <section className="project-section">
+              <div className="project-section-header">
+                <h2>{t.projectDetails.modules}</h2>
+              </div>
+
+              <div className="project-modules">
+                {projectModules.map((module) => (
+                  <button
+                    key={module.id}
+                    type="button"
+                    className={`project-module-button project-module-button-${module.kind}`}
+                    onClick={() => navigate(module.path)}
+                  >
+                    {module.label}
+                  </button>
+                ))}
+              </div>
+            </section>
             </>
           )}
         </main>

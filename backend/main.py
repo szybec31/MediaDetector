@@ -9,6 +9,7 @@ import zipfile
 import shutil
 import json
 import re
+import mimetypes
 
 app = FastAPI(title="MediaDetector")
 
@@ -631,3 +632,23 @@ def delete_project_file(
         "message": "Plik został usunięty.",
         "filename": filename,
     }
+
+@app.get("/api/projects/{project_id}/files/download/{filename}")
+def download_project_file(project_id: int, filename: str):
+    project_dir = find_project_by_id(project_id)
+
+    if project_dir is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Projekt nie istnieje.",
+        )
+
+    _, file_path = find_project_file(project_dir, filename)
+
+    media_type, _ = mimetypes.guess_type(file_path.name)
+
+    return FileResponse(
+        path=file_path,
+        filename=file_path.name,
+        media_type=media_type or "application/octet-stream",
+    )
