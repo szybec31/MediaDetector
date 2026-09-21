@@ -97,6 +97,7 @@ const pl = {
     audioonly:"Tylko audio",
     videoonly:"Tylko video",
     worddetection:"Wykrywanie słów z słownika",
+    censor:"Cenzura Transkrypcji",
     mute:"Wyciszenie słów z słownika",
     subtitles:"Dodanie napisów do video",
     selectiveblur:"Rozpoznanie i blur twarzy"
