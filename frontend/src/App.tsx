@@ -7,6 +7,7 @@ import ProfanityDictionaryPage from "./components/ProfanityDictionary/ProfanityD
 import ProjectDetailsPage from "./components/ProjectDetails/ProjectDetailsPage";
 
 import AddSourceFile from "./components/Modules/AddSourceFile/AddSourceFile";
+import ModulePage from "./components/Modules/ModulePage";
 
 function App() {
   return (
@@ -34,6 +35,11 @@ function App() {
         <Route
           path="/projects/:projectId/modules/add-source-files"
           element={<AddSourceFile />}
+        />
+
+        <Route
+          path="/projects/:projectId/modules/:moduleId"
+          element={<ModulePage />}
         />
 
       </Routes>

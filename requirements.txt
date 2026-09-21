@@ -3,3 +3,4 @@ uvicorn
 uvicorn[standard] 
 python-multipart
 fastapi-cors
+faster-whisper

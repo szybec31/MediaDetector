@@ -439,7 +439,7 @@ def find_project_file(
     for file_info in project_files:
         if (
             file_info.get("name") == filename
-            and file_info.get("source", "original") == "original"
+            and file_info.get("source", "original") != "source"
         ):
             file_path = (
                 project_dir
@@ -510,7 +510,7 @@ def download_all_project_files(
             added_files = 0
 
             for file_info in project_files:
-                if file_info.get("source", "original") != "original":
+                if file_info.get("source", "original") == "source":
                     continue
 
                 filename = file_info.get("name")
@@ -619,7 +619,7 @@ def delete_project_file(
         for file_info in project_info.get("files", [])
         if not (
             file_info.get("name") == filename
-            and file_info.get("source", "original") == "original"
+            and file_info.get("source", "original") != "original"
         )
     ]
 
@@ -651,4 +651,197 @@ def download_project_file(project_id: int, filename: str):
         path=file_path,
         filename=file_path.name,
         media_type=media_type or "application/octet-stream",
+    )
+
+
+
+# --------------- Endpointy dotyczące modułów AI ---------------
+from pathlib import Path
+from typing import Any
+
+from fastapi import APIRouter, BackgroundTasks, HTTPException
+
+from modules.runner import run_transcription_job
+from models.modules import (
+    ModuleJobResponse,
+    ModuleJobStatus,
+    ModuleRunRequest,
+)
+from services.module_jobs import (
+    create_job,
+    get_job,
+)
+
+
+router = APIRouter(
+    prefix="/api/modules",
+    tags=["modules"],
+)
+
+
+@router.post(
+    "/transcription/run",
+    response_model=ModuleJobResponse,
+)
+def run_transcription(
+    request: ModuleRunRequest,
+    background_tasks: BackgroundTasks,
+):
+    project_path = find_project_by_id(request.project_id)
+
+    if project_path is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Nie znaleziono projektu.",
+        )
+
+    input_file = project_path / request.filename
+
+    if not input_file.exists() or not input_file.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Nie znaleziono wybranego pliku.",
+        )
+
+    if not input_file.suffix.lower() in {
+        ".mp3",
+        ".mp4",
+        ".wav",
+        ".m4a",
+        ".flac",
+        ".ogg",
+        ".aac",
+        ".wma",
+    }:
+        raise HTTPException(
+            status_code=400,
+            detail="Moduł transkrypcji obsługuje wyłącznie pliki audio i video.",
+        )
+
+    job = create_job(
+        module_id="transcription",
+        project_id=request.project_id,
+    )
+
+    background_tasks.add_task(
+        run_transcription_job,
+        job_id=job.job_id,
+        project_path=project_path,
+        input_file=input_file,
+        parameters=request.parameters,
+    )
+
+    return ModuleJobResponse(
+        job_id=job.job_id,
+        status=job.status,
+        progress=job.progress,
+        message="Zadanie transkrypcji zostało uruchomione.",
+        output_files=[],
+    )
+
+
+@router.get(
+    "/transcription/status/{job_id}",
+    response_model=ModuleJobStatus,
+)
+def transcription_status(job_id: str):
+    job = get_job(job_id)
+
+    if job is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Nie znaleziono zadania.",
+        )
+
+    return ModuleJobStatus(
+        job_id=job.job_id,
+        status=job.status,
+        progress=job.progress,
+        message=job.message,
+        output_files=job.output_files,
+        error=job.error,
+    )
+
+
+app.include_router(router)
+
+
+from modules.runner import run_filter_words_job
+@router.post(
+    "/filter-words/run",
+    response_model=ModuleJobResponse,
+)
+def run_filter_words(
+    request: ModuleRunRequest,
+    background_tasks: BackgroundTasks,
+):
+    project_path = find_project_by_id(
+        request.project_id
+    )
+
+    if project_path is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Nie znaleziono projektu.",
+        )
+
+    input_file = project_path / request.filename
+
+    if not input_file.exists() or not input_file.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Nie znaleziono wybranego pliku.",
+        )
+
+    if input_file.suffix.lower() != ".json":
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Moduł wykrywania słów wymaga "
+                "pliku JSON transkrypcji."
+            ),
+        )
+
+    job = create_job(
+        module_id="filter-words",
+        project_id=request.project_id,
+    )
+
+    background_tasks.add_task(
+        run_filter_words_job,
+        job_id=job.job_id,
+        project_path=project_path,
+        input_file=input_file,
+        parameters=request.parameters,
+    )
+
+    return ModuleJobResponse(
+        job_id=job.job_id,
+        status=job.status,
+        progress=job.progress,
+        message="Wykrywanie słów zostało uruchomione.",
+        output_files=[],
+    )
+
+@router.get(
+    "/filter-words/status/{job_id}",
+    response_model=ModuleJobStatus,
+)
+def filter_words_status(job_id: str):
+
+    job = get_job(job_id)
+
+    if job is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Nie znaleziono zadania.",
+        )
+
+    return ModuleJobStatus(
+        job_id=job.job_id,
+        status=job.status,
+        progress=job.progress,
+        message=job.message,
+        output_files=job.output_files,
+        error=job.error,
     )
