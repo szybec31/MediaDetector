@@ -65,50 +65,52 @@ function ProjectDetailsPage() {
 
   const projectModules: ProjectModule[] = [
   {
-    id: "upload-plików",
-    label: "Upload Plików",
+    id: "file-upload",
+    label: t.ProjectDetailsModuleButtons.fileupload,
     kind: "video",
     path: `/projects/${projectId}/modules/add-source-files`,
   },
   {
-    id: "split",
-    label: "Rozdzielenie audio i video na osobne pliki",
-    kind: "video",
-    path: `/projects/${projectId}/modules/split`,
-  },
-  {
-    id: "conversion",
-    label: "Konwersja na wybrany format",
-    kind: "video",
-    path: `/projects/${projectId}/modules/split`,
-  },
-  {
-    id: "transkrypcja",
-    label: "Speach to Text",
+    id: "transcription",
+    label: t.ProjectDetailsModuleButtons.speachtotext,
     kind: "audio",
-    path: `/projects/${projectId}/modules/stt`,
+    path: `/projects/${projectId}/modules/transcription`,
   },
   {
-    id: "word-filter",
-    label: "Wykrywanie słów z słownika",
+    id: "filter-words",
+    label: t.ProjectDetailsModuleButtons.worddetection,
     kind: "audio",
-    path: `/projects/${projectId}/modules/audio-cleanup`,
+    path: `/projects/${projectId}/modules/filter-words`,
   },
+  // In progress
+  {
+    id: "audio-only",
+    label: t.ProjectDetailsModuleButtons.audioonly,
+    kind: "audio",
+    path: `/projects/${projectId}/modules/audio-only`,
+  },
+  {
+    id: "video-only",
+    label: t.ProjectDetailsModuleButtons.videoonly,
+    kind: "video",
+    path: `/projects/${projectId}/modules/video-only`,
+  },
+
   {
     id: "mute",
-    label: "Wyciszenie przekleństw",
+    label: t.ProjectDetailsModuleButtons.mute,
     kind: "audio",
-    path: `/projects/${projectId}/modules/scene-detection`,
+    path: `/projects/${projectId}/modules/word-mute`,
   },
   {
     id: "subtitles",
-    label: "Generowanie napisów do filmów",
+    label: t.ProjectDetailsModuleButtons.subtitles,
     kind: "video",
     path: `/projects/${projectId}/modules/subtitles`,
   },
   {
     id: "blurowanie-twarzy",
-    label: "Blurowanie twarzy",
+    label: t.ProjectDetailsModuleButtons.selectiveblur,
     kind: "video",
     path: `/projects/${projectId}/modules/blur`,
   },
@@ -371,7 +373,7 @@ function ProjectDetailsPage() {
                   <h2>{t.projectDetails.files}</h2>
 
                   <span>
-                    {project.files.length} {t.projectDetails.fileCount}
+                    {t.projectDetails.fileCount} {project.files.length}
                   </span>
                 </div>
 

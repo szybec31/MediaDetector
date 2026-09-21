@@ -73,7 +73,7 @@ const en = {
     loading: "Loading project...",
     project: "Project",
     files: "Project files",
-    fileCount: "files",
+    fileCount: "Files:",
     emptyFiles: "The project does not contain any files yet.",
     preview: "File preview",
     selectFile: "Select a file from the list above.",
@@ -89,6 +89,17 @@ const en = {
       'Are you sure you want to delete project "{name}"?',
     loadError: "Failed to load the project.",
     deleteError: "Failed to delete the project.",
+  },
+
+  ProjectDetailsModuleButtons: {
+    fileupload: "File Upload",
+    speachtotext: "Speach to Text",
+    audioonly:"Audio only",
+    videoonly:"Video only",
+    worddetection:"Word detection",
+    mute:"Mute detected words",
+    subtitles:"Add subtitles",
+    selectiveblur:"Selective face recognition"
   },
 
   addSourceFile: {

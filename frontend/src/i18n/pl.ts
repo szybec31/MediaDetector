@@ -1,3 +1,5 @@
+import ProjectDetailsPage from "../components/ProjectDetails/ProjectDetailsPage";
+
 const pl = {
   app: {
     name: "MediaDetector",
@@ -72,7 +74,7 @@ const pl = {
     loading: "Ładowanie projektu...",
     project: "Projekt",
     files: "Pliki projektu",
-    fileCount: "plików",
+    fileCount: "Pliki:",
     emptyFiles: "Projekt nie zawiera jeszcze żadnych plików.",
     preview: "Podgląd pliku",
     selectFile: "Wybierz plik z listy powyżej.",
@@ -89,6 +91,17 @@ const pl = {
     loadError: "Nie udało się wczytać projektu.",
     deleteError: "Nie udało się usunąć projektu.",
   },
+  ProjectDetailsModuleButtons: {
+    fileupload: "Upload Plików",
+    speachtotext: "Zamiana mowy na tekst",
+    audioonly:"Tylko audio",
+    videoonly:"Tylko video",
+    worddetection:"Wykrywanie słów z słownika",
+    mute:"Wyciszenie słów z słownika",
+    subtitles:"Dodanie napisów do video",
+    selectiveblur:"Rozpoznanie i blur twarzy"
+  },
+
   addSourceFile: {
     title: "Dodaj pliki źródłowe",
     description: "Dodaj źródłowe pliki audio lub video do projektu.",
@@ -109,6 +122,15 @@ const pl = {
     },
     success: "Pliki zostały dodane.",
   },
+  transcriptionModule: {
+    title: "",
+    description: "",
+    inputfiles: "",
+    parameters: "",
+
+
+
+  }
   
 };
 
