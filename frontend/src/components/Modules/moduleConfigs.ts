@@ -61,107 +61,61 @@ export const moduleConfigs: Record<string, ModuleConfig> = {
     statusEndpoint: "/api/modules/filter-words/status",
   },
 
-  diarization: {
-    id: "diarization",
-    title: "Rozpoznawanie mówców",
+  "censor-transcription": {
+    id: "censor-transcription",
+    title: "Cenzurowanie transkrypcji",
     description:
-      "Moduł wykrywa poszczególnych mówców w nagraniu i przypisuje fragmenty wypowiedzi do odpowiednich profili.",
-
-    acceptedFileTypes: ["audio"],
-
+      "Zamienia wykryte przekleństwa w transkrypcji na gwiazdki.",
+    acceptedFileTypes: ["transcription-json"],
     parameters: [
       {
-        id: "profiles",
-        label: "Profile osób",
-        type: "multiselect",
+        id: "detected_words_file",
+        label: "Plik z wykrytymi słowami",
+        type: "file",
         required: true,
-        defaultValue: [],
-        options: [
-          { label: "Osoba 1", value: "person-1" },
-          { label: "Osoba 2", value: "person-2" },
-          { label: "Osoba 3", value: "person-3" },
-        ],
-      },
-      {
-        id: "minSpeakers",
-        label: "Minimalna liczba mówców",
-        type: "number",
-        defaultValue: 1,
-        min: 1,
-        max: 20,
-      },
-      {
-        id: "maxSpeakers",
-        label: "Maksymalna liczba mówców",
-        type: "number",
-        defaultValue: 5,
-        min: 1,
-        max: 20,
       },
     ],
-
-    runEndpoint: "/api/modules/diarization/run",
-    statusEndpoint: "/api/modules/diarization/status",
-    resultEndpoint: "/api/modules/diarization/result",
+    runEndpoint: "/api/modules/censor-transcription/run",
+    statusEndpoint: "/api/modules/censor-transcription/status",
   },
 
-  sceneDetection: {
-    id: "scene-detection",
-    title: "Detekcja scen",
+  "subtitles": {
+    id: "add-subtitles",
+
+    title: "Dodawanie napisów",
+
     description:
-      "Moduł analizuje materiał wideo i wykrywa momenty zmiany scen.",
+      "Moduł pozwala dodać napisy na podstawie transkrypcji i wtopić je bezpośrednio w plik video.",
 
     acceptedFileTypes: ["video"],
 
     parameters: [
       {
-        id: "frameInterval",
-        label: "Analiza co ile klatek",
-        type: "number",
-        defaultValue: 10,
-        min: 1,
-        max: 1000,
+        id: "transcription_file",
+        label: "Plik transkrypcji",
+        type: "file",
+        required: true,
       },
       {
-        id: "threshold",
-        label: "Próg wykrywania zmiany",
+        id: "font_size",
+        label: "Wielkość czcionki",
         type: "number",
-        defaultValue: 0.5,
-        min: 0,
-        max: 1,
-        step: 0.01,
+        required: true,
+        defaultValue: 24,
+        min: 8,
+        max: 72,
+        step: 1,
+      },
+      {
+        id: "font_color",
+        label: "Kolor napisów",
+        type: "text",
+        required: true,
+        defaultValue: "#FFFFFF",
       },
     ],
 
-    runEndpoint: "/api/modules/scene-detection/run",
-    statusEndpoint: "/api/modules/scene-detection/status",
-    resultEndpoint: "/api/modules/scene-detection/result",
-  },
-
-  subtitles: {
-    id: "subtitles",
-    title: "Przetwarzanie transkrypcji",
-    description:
-      "Moduł przyjmuje plik JSON zawierający transkrypcję i generuje plik napisów.",
-
-    acceptedFileTypes: ["transcription-json"],
-    requiredFilename: "transkrypcja",
-
-    parameters: [
-      {
-        id: "format",
-        label: "Format wynikowy",
-        type: "select",
-        defaultValue: "srt",
-        options: [
-          { label: "SRT", value: "srt" },
-          { label: "VTT", value: "vtt" },
-        ],
-      },
-    ],
-
-    runEndpoint: "/api/modules/subtitles/run",
-    statusEndpoint: "/api/modules/subtitles/status",
-    resultEndpoint: "/api/modules/subtitles/result",
+    runEndpoint: "/api/modules/add-subtitles/run",
+    statusEndpoint: "/api/modules/add-subtitles/status",
   },
 };

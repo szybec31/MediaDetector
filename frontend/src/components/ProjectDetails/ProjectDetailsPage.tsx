@@ -82,6 +82,12 @@ function ProjectDetailsPage() {
     kind: "audio",
     path: `/projects/${projectId}/modules/filter-words`,
   },
+  {
+    id: "censor-transcription",
+    label: t.ProjectDetailsModuleButtons.censor,
+    kind: "audio",
+    path: `/projects/${projectId}/modules/censor-transcription`,
+  },
   // In progress
   {
     id: "audio-only",

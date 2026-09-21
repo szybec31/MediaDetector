@@ -15,7 +15,8 @@ export type ModuleParameterType =
   | "number"
   | "select"
   | "checkbox"
-  | "multiselect";
+  | "multiselect"
+  | "file";
 
 export interface ModuleParameter {
   id: string;

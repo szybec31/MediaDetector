@@ -97,6 +97,7 @@ const en = {
     audioonly:"Audio only",
     videoonly:"Video only",
     worddetection:"Word detection",
+    censor:"Censore Transcripton",
     mute:"Mute detected words",
     subtitles:"Add subtitles",
     selectiveblur:"Selective face recognition"

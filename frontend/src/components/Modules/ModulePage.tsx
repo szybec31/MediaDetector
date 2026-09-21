@@ -40,6 +40,42 @@ function getDefaultParameterValues(
   }, {});
 }
 
+function getParameterFiles(
+  parameter: ModuleParameter,
+  projectFiles: ProjectFile[]
+): ProjectFile[] {
+  if (parameter.type !== "file") {
+    return [];
+  }
+
+  if (parameter.id === "detected_words_file") {
+    return projectFiles.filter((file) => {
+      const filename = file.name.toLowerCase();
+
+      return (
+        filename.endsWith(".json") &&
+        filename.startsWith("detected_words_")
+      );
+    });
+  }
+
+  if (parameter.id === "transcription") {
+    return projectFiles.filter((file) => {
+      const filename = file.name.toLowerCase();
+
+      return (
+        filename.endsWith(".json") &&
+        filename.startsWith("transcription_")
+      );
+    });
+  }
+
+  return projectFiles.filter((file) => 
+    { const filename = file.name.toLowerCase();
+      return filename.endsWith(".json") && filename !== "project_info.json"; 
+    });
+}
+
 function isProjectFileAllowed(
   file: ProjectFile,
   config: ModuleConfig
@@ -408,6 +444,48 @@ export default function ModulePage() {
           </label>
         );
 
+        case "file": {
+        const parameterFiles = projectFiles.filter((file) => {
+          const filename = file.name.toLowerCase();
+
+          if (parameter.id === "detected_words_file") {
+            return (
+              filename.endsWith(".json") &&
+              filename.startsWith("detected_words_")
+            );
+          }
+          if (parameter.id === "transcription_file" || parameter.id === "censored_transcription") {
+            return (
+              filename.endsWith(".json") &&
+              (filename.startsWith("transcription_") || filename.startsWith("censored_"))
+            );
+          }
+
+          return false;
+        });
+
+        return (
+          <select
+            value={String(value ?? "")}
+            required={parameter.required}
+            onChange={(event) =>
+              handleParameterChange(
+                parameter,
+                event.target.value
+              )
+            }
+          >
+            <option value="">Wybierz plik</option>
+
+            {parameterFiles.map((file) => (
+              <option key={file.name} value={file.name}>
+                {file.name}
+              </option>
+            ))}
+          </select>
+        );
+      }
+
       case "multiselect":
         return (
           <select
@@ -628,10 +706,10 @@ export default function ModulePage() {
                 </p>
               ) : (
                 <div className="module-output-files">
-                  {result.outputFiles.map((file) => (
+                  {result.outputFiles.map((file,index) => (
                     <div
                       className="module-output-file"
-                      key={file.name}
+                      key={`${file.name}-${file.type}-${index}`}
                     >
                       <div>
                         <strong>{file.name}</strong>
