@@ -1053,3 +1053,129 @@ def add_subtitles_status(
         output_files=job.output_files,
         error=job.error,
     )
+
+from modules.runner import run_mute_detected_words_job
+
+@router.post(
+    "/mute-detected-words/run"
+)
+def start_mute_detected_words(
+    request: ModuleRunRequest,
+    background_tasks: BackgroundTasks
+):
+    project_id = str(request.project_id)
+
+    project_path = find_project_by_id(
+        request.project_id
+    )
+
+    if not project_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Projekt nie istnieje.",
+        )
+
+    input_filename = request.filename
+
+    if not input_filename:
+        raise HTTPException(
+            status_code=400,
+            detail="Nie wskazano pliku wejściowego.",
+        )
+
+    input_file = (
+        project_path
+        / input_filename
+    )
+
+    if not input_file.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Nie znaleziono pliku wejściowego: "
+                f"{input_filename}"
+            ),
+        )
+
+    parameters = request.parameters or {}
+
+    detected_words_filename = parameters.get(
+        "detected_words_file"
+    )
+
+    if not detected_words_filename:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Nie wskazano pliku "
+                "wykrytych słów."
+            ),
+        )
+
+    detected_words_file = (
+        project_path
+        / detected_words_filename
+    )
+
+    if not detected_words_file.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Nie znaleziono pliku wykrytych słów: "
+                f"{detected_words_filename}"
+            ),
+        )
+
+    if detected_words_file.suffix.lower() != ".json":
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Plik wykrytych słów musi być "
+                "plikiem JSON."
+            ),
+        )
+    job = create_job(
+        module_id="mute-detected-words",
+        project_id=request.project_id,
+    )
+
+    background_tasks.add_task(
+        run_mute_detected_words_job,
+        job_id=job.job_id,
+        project_path=project_path,
+        input_file=input_file,
+        parameters=request.parameters,
+    )
+
+    return {
+            "job_id": job.job_id,
+            "status": job.status,
+            "progress": job.progress,
+            "message": job.message,
+            "output_files": job.output_files,
+        }
+
+
+@router.get(
+    "/mute-detected-words/status/{job_id}",
+    response_model=ModuleJobStatus,
+)
+def mute_detected_words_status(
+    job_id: str,
+):
+    job = get_job(job_id)
+
+    if job is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Nie znaleziono zadania.",
+        )
+
+    return ModuleJobStatus(
+        job_id=job.job_id,
+        status=job.status,
+        progress=job.progress,
+        message=job.message,
+        output_files=job.output_files,
+        error=job.error,
+    )

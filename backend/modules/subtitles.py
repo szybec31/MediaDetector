@@ -4,6 +4,7 @@ import json
 import subprocess
 import shutil
 import re
+import time
 
 
 # ==========================================================
@@ -172,17 +173,54 @@ def hex_to_ass_color(
     # ASS używa kolejności BBGGRR.
     return f"&H00{blue}{green}{red}"
 
+# ==========================================================
+# Odczytanie długości video
+# ==========================================================
+def get_video_duration(
+    video_file: Path,
+) -> float:
+
+    command = [
+        "ffprobe",
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration",
+        "-of",
+        "default=noprint_wrappers=1:nokey=1",
+        str(video_file),
+    ]
+
+    result = subprocess.run(
+        command,
+        capture_output=True,
+        text=True,
+    )
+
+    if result.returncode != 0:
+        raise RuntimeError(
+            "Nie udało się odczytać długości filmu.\n\n"
+            + result.stderr
+        )
+
+    try:
+        return float(result.stdout.strip())
+    except ValueError:
+        raise RuntimeError(
+            "FFprobe zwrócił nieprawidłową długość filmu."
+        )
+
 
 # ==========================================================
 # WTOPIENIE NAPISÓW W VIDEO
 # ==========================================================
-
 def burn_subtitles(
     project_path: Path,
     video_file: Path,
     srt_file: Path,
     font_size: int,
     font_color: str,
+    progress_callback=None,
 ) -> Path:
 
     results_dir = project_path
@@ -192,7 +230,7 @@ def burn_subtitles(
     )
 
     timestamp = datetime.now().strftime(
-        "%Y%m%d_%H%M%S"
+        "%d-%m-%Y_%H-%M-%S"
     )
 
     output_file = (
@@ -237,6 +275,16 @@ def burn_subtitles(
         f"PrimaryColour={ass_color}'"
     )
 
+    duration = get_video_duration(
+        video_file
+    )
+
+    if duration <= 0:
+        raise RuntimeError(
+            "Nie udało się odczytać poprawnej "
+            "długości filmu."
+        )
+
     command = [
         "ffmpeg",
         "-y",
@@ -262,19 +310,100 @@ def burn_subtitles(
         "-b:a",
         "192k",
 
+        "-progress",
+        "pipe:1",
+
+        "-nostats",
+
+        "-loglevel",
+        "error",
+
         str(output_file),
     ]
 
-    result = subprocess.run(
+    process = subprocess.Popen(
         command,
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
         text=True,
+        bufsize=1,
     )
 
-    if result.returncode != 0:
+    if process.stdout is None:
+        process.kill()
+
+        raise RuntimeError(
+            "Nie udało się odczytać "
+            "postępu FFmpeg."
+        )
+
+    last_progress = 0.0
+    output_lines = []
+
+    for line in process.stdout:
+        line = line.strip()
+
+        if not line:
+            continue
+
+        output_lines.append(line)
+
+        if line.startswith("out_time_ms="):
+            try:
+                out_time_ms = int(
+                    line.split("=", 1)[1]
+                )
+
+                current_time = (
+                    out_time_ms / 1_000_000
+                )
+
+                ffmpeg_progress = (
+                    current_time / duration
+                )
+
+                ffmpeg_progress = min(
+                    max(
+                        ffmpeg_progress,
+                        0.0,
+                    ),
+                    1.0,
+                )
+
+                # FFmpeg zajmuje zakres 10%-95%.
+                job_progress = (
+                    0.10
+                    + ffmpeg_progress * 0.85
+                )
+
+                # Aktualizujemy progress tylko,
+                # gdy zmienił się przynajmniej o 0.5%.
+                if (
+                    job_progress - last_progress
+                    >= 0.005
+                ):
+                    if progress_callback:
+                        progress_callback(
+                            job_progress
+                        )
+
+                    last_progress = (
+                        job_progress
+                    )
+
+            except ValueError:
+                continue
+
+    process.wait()
+
+    if process.returncode != 0:
+        ffmpeg_output = "\n".join(
+            output_lines
+        )
+
         raise RuntimeError(
             "FFmpeg nie mógł wtopić napisów.\n\n"
-            + result.stderr
+            + ffmpeg_output
         )
 
     if not output_file.exists():
@@ -283,13 +412,14 @@ def burn_subtitles(
             "ale nie utworzył pliku wynikowego."
         )
 
-    return output_file
+    if progress_callback:
+        progress_callback(0.95)
 
+    return output_file
 
 # ==========================================================
 # GŁÓWNA FUNKCJA
 # ==========================================================
-
 def add_subtitles(
     *,
     project_path: Path,
@@ -297,17 +427,21 @@ def add_subtitles(
     transcription_file: Path,
     font_size: int,
     font_color: str,
-) -> Path:
+    progress_callback=None,
+) -> tuple[Path, Path]:
 
     srt_file = create_srt(
         project_path=project_path,
         transcription_file=transcription_file,
     )
 
-    return burn_subtitles(
+    output_file = burn_subtitles(
         project_path=project_path,
         video_file=video_file,
         srt_file=srt_file,
         font_size=font_size,
         font_color=font_color,
+        progress_callback=progress_callback,
     )
+
+    return output_file, srt_file
