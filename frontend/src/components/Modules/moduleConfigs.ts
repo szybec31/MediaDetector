@@ -118,4 +118,26 @@ export const moduleConfigs: Record<string, ModuleConfig> = {
     runEndpoint: "/api/modules/add-subtitles/run",
     statusEndpoint: "/api/modules/add-subtitles/status",
   },
+  "mute-detected-words": {
+    id: "mute-detected-words",
+
+    title: "Wycisz wykryte słowa",
+
+    description:
+      "Moduł automatycznie wycisza fragmenty audio odpowiadające słowom wykrytym przez słownik.",
+
+    acceptedFileTypes: ["video"],
+
+    parameters: [
+      {
+        id: "detected_words_file",
+        label: "Plik wykrytych słów",
+        type: "file",
+        required: true,
+      },
+    ],
+
+    runEndpoint: "/api/modules/mute-detected-words/run",
+    statusEndpoint: "/api/modules/mute-detected-words/status",
+  },
 };

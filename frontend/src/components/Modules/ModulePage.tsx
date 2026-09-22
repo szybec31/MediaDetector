@@ -386,6 +386,16 @@ export default function ModulePage() {
 
     switch (parameter.type) {
       case "text":
+        if (parameter.id === "font_color") {
+          return ( 
+            <input 
+              type="color"
+              className="parameter-color-input" 
+              value={String(value ?? "#FFFFFF")} 
+              onChange={(event) => handleParameterChange( parameter, event.target.value ) } 
+            /> 
+          ); 
+        }
         return (
           <input
             type="text"

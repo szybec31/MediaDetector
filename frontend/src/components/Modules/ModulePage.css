@@ -524,6 +524,24 @@
   color: #f3f4f6;
   font-size: 22px;
 }
+.parameter-color-input {
+  width: 100px; 
+  height: 36px; 
+  padding: 3px; 
+  border: 1px solid #4b5563;
+  border-radius: 6px;
+  background: #111827; 
+  cursor: pointer;
+}
+
+.parameter-color-input:hover {
+  border-color: #888; 
+}
+
+.parameter-color-input:focus { 
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px; 
+}
 
 /* Responsywność */
 

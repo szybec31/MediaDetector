@@ -88,6 +88,18 @@ function ProjectDetailsPage() {
     kind: "audio",
     path: `/projects/${projectId}/modules/censor-transcription`,
   },
+    {
+    id: "mute-detected-words",
+    label: t.ProjectDetailsModuleButtons.mute,
+    kind: "audio",
+    path: `/projects/${projectId}/modules/mute-detected-words`,
+  },
+  {
+    id: "subtitles",
+    label: t.ProjectDetailsModuleButtons.subtitles,
+    kind: "video",
+    path: `/projects/${projectId}/modules/subtitles`,
+  },
   // In progress
   {
     id: "audio-only",
@@ -100,19 +112,6 @@ function ProjectDetailsPage() {
     label: t.ProjectDetailsModuleButtons.videoonly,
     kind: "video",
     path: `/projects/${projectId}/modules/video-only`,
-  },
-
-  {
-    id: "mute",
-    label: t.ProjectDetailsModuleButtons.mute,
-    kind: "audio",
-    path: `/projects/${projectId}/modules/word-mute`,
-  },
-  {
-    id: "subtitles",
-    label: t.ProjectDetailsModuleButtons.subtitles,
-    kind: "video",
-    path: `/projects/${projectId}/modules/subtitles`,
   },
   {
     id: "blurowanie-twarzy",

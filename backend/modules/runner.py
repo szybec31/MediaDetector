@@ -374,16 +374,22 @@ def run_add_subtitles_job(
         update_job(
             job_id,
             status="running",
-            progress=0.2,
+            progress=0.1,
             message="Generowanie napisów...",
         )
 
-        output_file = add_subtitles(
+        output_file, srt_file = add_subtitles(
             project_path=project_path,
             video_file=input_file,
             transcription_file=transcription_file,
             font_size=font_size,
             font_color=font_color,
+            progress_callback=lambda progress: update_job(
+                job_id,
+                status="running",
+                progress=progress,
+                message="Wtapianie napisów do filmu...",
+            ),
         )
 
         update_job(
@@ -407,15 +413,17 @@ def run_add_subtitles_job(
             for file_entry in files
         }
 
-        if output_file.name not in existing_names:
-            files.append(
-                {
-                    "name": output_file.name,
-                    "size": output_file.stat().st_size,
-                    "type": "video/mp4",
-                    "source": "result",
-                }
-            )
+        result_files = [ ( output_file, "video/mp4", ), ( srt_file, "application/x-subrip", ), ]
+        for file_path, file_type in result_files:
+            if file_path.name not in existing_names:
+                files.append(
+                    {
+                        "name": file_path.name,
+                        "size": file_path.stat().st_size,
+                        "type": file_type,
+                        "source": "result",
+                    }
+                )
 
         project_info["files"] = files
 
@@ -430,6 +438,7 @@ def run_add_subtitles_job(
             progress=1.0,
             message="Napisy zostały dodane do filmu.",
             output_files=[
+                srt_file.name,
                 output_file.name
             ],
         )
@@ -442,6 +451,181 @@ def run_add_subtitles_job(
             progress=0.0,
             message=(
                 "Dodawanie napisów "
+                "zakończyło się błędem."
+            ),
+            error=str(error),
+        )
+
+
+from modules.mute_detected_words import (
+    mute_detected_words,
+)
+
+
+def run_mute_detected_words_job(
+    *,
+    job_id: str,
+    project_path: Path,
+    input_file: Path,
+    parameters: dict[str, Any],
+) -> None:
+
+    try:
+        # ==================================================
+        # START
+        # ==================================================
+
+        update_job(
+            job_id,
+            status="running",
+            progress=0.0,
+            message="Wczytywanie ustawień wyciszania...",
+        )
+
+        # ==================================================
+        # PLIK DETECTED WORDS
+        # ==================================================
+
+        detected_words_filename = parameters.get(
+            "detected_words_file"
+        )
+
+        if not detected_words_filename:
+            raise ValueError(
+                "Nie wskazano pliku wykrytych słów."
+            )
+
+        detected_words_file = (
+            project_path
+            / detected_words_filename
+        )
+
+        if not detected_words_file.exists():
+            raise FileNotFoundError(
+                "Nie znaleziono pliku wykrytych słów: "
+                f"{detected_words_filename}"
+            )
+
+        if detected_words_file.suffix.lower() != ".json":
+            raise ValueError(
+                "Plik wykrytych słów musi być plikiem JSON."
+            )
+
+        # ==================================================
+        # PLIK WEJŚCIOWY
+        # ==================================================
+
+        if not input_file.exists():
+            raise FileNotFoundError(
+                "Nie znaleziono pliku wejściowego:\n"
+                f"{input_file}"
+            )
+
+        # ==================================================
+        # WYLICZANIE / PRZETWARZANIE
+        # ==================================================
+
+        update_job(
+            job_id,
+            status="running",
+            progress=0.05,
+            message="Wyciszanie wykrytych słów...",
+        )
+
+        output_file = mute_detected_words(
+            project_path=project_path,
+            input_file=input_file,
+            detected_words_file=detected_words_file,
+            progress_callback=lambda progress: update_job(
+                job_id,
+                status="running",
+                progress=progress,
+                message="Wyciszanie wykrytych słów...",
+            ),
+        )
+
+        # ==================================================
+        # ZAPIS DO PROJECT_INFO
+        # ==================================================
+
+        update_job(
+            job_id,
+            status="running",
+            progress=0.95,
+            message="Zapisywanie wyniku...",
+        )
+
+        project_info = load_project_info(
+            project_path
+        )
+
+        files = project_info.get(
+            "files",
+            []
+        )
+
+        existing_names = {
+            file_entry.get("name")
+            for file_entry in files
+        }
+
+        # ==================================================
+        # TYP PLIKU
+        # ==================================================
+
+        if output_file.suffix.lower() == ".mp4":
+            output_type = "video/mp4"
+
+        elif output_file.suffix.lower() == ".wav":
+            output_type = "audio/wav"
+
+        else:
+            output_type = "application/octet-stream"
+
+        # ==================================================
+        # DODANIE WYNIKU
+        # ==================================================
+
+        if output_file.name not in existing_names:
+
+            files.append(
+                {
+                    "name": output_file.name,
+                    "size": output_file.stat().st_size,
+                    "type": output_type,
+                    "source": "result",
+                }
+            )
+
+        project_info["files"] = files
+
+        save_project_info(
+            project_path,
+            project_info,
+        )
+
+        # ==================================================
+        # ZAKOŃCZENIE
+        # ==================================================
+
+        update_job(
+            job_id,
+            status="completed",
+            progress=1.0,
+            message="Wykryte słowa zostały wyciszone.",
+            output_files=[
+                output_file.name
+            ],
+        )
+
+    except Exception as error:
+
+        update_job(
+            job_id,
+            status="failed",
+            progress=0.0,
+            message=(
+                "Wyciszanie wykrytych słów "
                 "zakończyło się błędem."
             ),
             error=str(error),
