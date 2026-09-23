@@ -140,4 +140,31 @@ export const moduleConfigs: Record<string, ModuleConfig> = {
     runEndpoint: "/api/modules/mute-detected-words/run",
     statusEndpoint: "/api/modules/mute-detected-words/status",
   },
+  "split-media": {
+    id: "split-media",
+    title: "Rozdziel audio i video",
+    description:
+      "Moduł rozdziela wskazany plik video na osobny plik video oraz osobny plik audio.",
+    acceptedFileTypes: ["video"],
+    parameters: [],
+    runEndpoint: "/api/modules/split-media/run",
+    statusEndpoint: "/api/modules/split-media/status",
+  },
+  "merge-media": {
+    id: "merge-media",
+    title: "Połącz video i audio",
+    description:
+      "Moduł łączy wskazany plik video i plik audio w jeden plik multimedialny.",
+    acceptedFileTypes: ["video"],
+    parameters: [
+      {
+        id: "audio_file",
+        label: "Plik audio",
+        type: "file",
+        required: true,
+      },
+    ],
+    runEndpoint: "/api/modules/merge-media/run",
+    statusEndpoint: "/api/modules/merge-media/status",
+  },
 };

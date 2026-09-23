@@ -94,8 +94,8 @@ const en = {
   ProjectDetailsModuleButtons: {
     fileupload: "File Upload",
     speachtotext: "Speach to Text",
-    audioonly:"Audio only",
-    videoonly:"Video only",
+    split_media:"Split media",
+    merge_media:"Merge media",
     worddetection:"Word detection",
     censor:"Censore Transcripton",
     mute:"Mute detected words",

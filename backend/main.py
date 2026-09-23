@@ -560,9 +560,7 @@ def download_all_project_files(
         media_type="application/zip",
     )
 
-@app.get(
-    "/api/projects/{project_id}/files/download/{filename}"
-)
+@app.get("/api/projects/{project_id}/files/download/{filename}")
 def download_project_file(
     project_id: int,
     filename: str,
@@ -579,6 +577,12 @@ def download_project_file(
         project_dir,
         filename,
     )
+
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Nie znaleziono pliku.",
+        )
 
     return FileResponse(
         path=file_path,
@@ -632,27 +636,6 @@ def delete_project_file(
         "message": "Plik został usunięty.",
         "filename": filename,
     }
-
-@app.get("/api/projects/{project_id}/files/download/{filename}")
-def download_project_file(project_id: int, filename: str):
-    project_dir = find_project_by_id(project_id)
-
-    if project_dir is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Projekt nie istnieje.",
-        )
-
-    _, file_path = find_project_file(project_dir, filename)
-
-    media_type, _ = mimetypes.guess_type(file_path.name)
-
-    return FileResponse(
-        path=file_path,
-        filename=file_path.name,
-        media_type=media_type or "application/octet-stream",
-    )
-
 
 
 # --------------- Endpointy dotyczące modułów AI ---------------
@@ -1161,6 +1144,217 @@ def start_mute_detected_words(
     response_model=ModuleJobStatus,
 )
 def mute_detected_words_status(
+    job_id: str,
+):
+    job = get_job(job_id)
+
+    if job is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Nie znaleziono zadania.",
+        )
+
+    return ModuleJobStatus(
+        job_id=job.job_id,
+        status=job.status,
+        progress=job.progress,
+        message=job.message,
+        output_files=job.output_files,
+        error=job.error,
+    )
+
+from modules.runner import run_split_media_job
+
+@router.post(
+    "/split-media/run"
+)
+def start_split_media(
+    request: ModuleRunRequest,
+    background_tasks: BackgroundTasks,
+):
+    project_id = request.project_id
+
+    project_path = find_project_by_id(
+        request.project_id
+    )
+
+    if project_path is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Nie znaleziono projektu.",
+        )
+
+    if not project_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Projekt nie istnieje.",
+        )
+
+    input_filename = request.filename
+
+    if not input_filename:
+        raise HTTPException(
+            status_code=400,
+            detail="Nie wskazano pliku wejściowego.",
+        )
+
+    input_file = project_path / input_filename
+
+    if not input_file.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Nie znaleziono pliku wejściowego: "
+                f"{input_filename}"
+            ),
+        )
+
+    job = create_job(
+        module_id="split-media",
+        project_id=project_id,
+    )
+
+    background_tasks.add_task(
+        run_split_media_job,
+        job_id=job.job_id,
+        project_path=project_path,
+        input_file=input_file,
+        parameters=request.parameters or {},
+    )
+
+    return {
+        "job_id": job.job_id,
+        "status": job.status,
+        "progress": job.progress,
+        "message": job.message,
+        "output_files": job.output_files,
+    }
+
+@router.get(
+    "/split-media/status/{job_id}",
+    response_model=ModuleJobStatus,
+)
+def split_media_status(
+    job_id: str,
+):
+    job = get_job(job_id)
+
+    if job is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Nie znaleziono zadania.",
+        )
+
+    return ModuleJobStatus(
+        job_id=job.job_id,
+        status=job.status,
+        progress=job.progress,
+        message=job.message,
+        output_files=job.output_files,
+        error=job.error,
+    )
+
+from modules.runner import run_merge_media_job
+
+@router.post(
+    "/merge-media/run"
+)
+def start_merge_media(
+    request: ModuleRunRequest,
+    background_tasks: BackgroundTasks,
+):
+    project_id = request.project_id
+
+    project_path = find_project_by_id(
+        request.project_id
+    )
+
+    if project_path is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Nie znaleziono projektu.",
+        )
+
+    if not project_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Projekt nie istnieje.",
+        )
+
+    input_filename = request.filename
+
+    if not input_filename:
+        raise HTTPException(
+            status_code=400,
+            detail="Nie wskazano pliku video.",
+        )
+
+    input_file = (
+        project_path / input_filename
+    )
+
+    if not input_file.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Nie znaleziono pliku video: "
+                f"{input_filename}"
+            ),
+        )
+
+    parameters = request.parameters or {}
+
+    audio_filename = parameters.get(
+        "audio_file"
+    )
+
+    if not audio_filename:
+        raise HTTPException(
+            status_code=400,
+            detail="Nie wskazano pliku audio.",
+        )
+
+    audio_file = (
+        project_path / audio_filename
+    )
+
+    if not audio_file.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Nie znaleziono pliku audio: "
+                f"{audio_filename}"
+            ),
+        )
+
+    job = create_job(
+        module_id="merge-media",
+        project_id=project_id,
+    )
+
+    background_tasks.add_task(
+        run_merge_media_job,
+        job_id=job.job_id,
+        project_path=project_path,
+        input_file=input_file,
+        parameters=parameters,
+    )
+
+    return {
+        "job_id": job.job_id,
+        "status": job.status,
+        "progress": job.progress,
+        "message": job.message,
+        "output_files": job.output_files,
+    }
+
+
+
+@router.get(
+    "/merge-media/status/{job_id}",
+    response_model=ModuleJobStatus,
+)
+def merge_media_status(
     job_id: str,
 ):
     job = get_job(job_id)

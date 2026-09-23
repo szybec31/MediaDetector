@@ -470,6 +470,16 @@ export default function ModulePage() {
               (filename.startsWith("transcription_") || filename.startsWith("censored_"))
             );
           }
+          if (parameter.id === "audio_file") {
+            return (
+              filename.endsWith(".m4a") ||
+              filename.endsWith(".wav") ||
+              filename.endsWith(".mp3") ||
+              filename.endsWith(".aac") ||
+              filename.endsWith(".flac") ||
+              filename.endsWith(".ogg")
+            );
+          }
 
           return false;
         });
