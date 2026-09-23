@@ -630,3 +630,208 @@ def run_mute_detected_words_job(
             ),
             error=str(error),
         )
+
+from modules.split_media import split_media
+def run_split_media_job(
+    *,
+    job_id: str,
+    project_path: Path,
+    input_file: Path,
+    parameters: dict[str, Any],
+) -> None:
+
+    try:
+        update_job(
+            job_id,
+            status="running",
+            progress=0.05,
+            message="Rozdzielanie audio i video...",
+        )
+
+        if not input_file.exists():
+            raise FileNotFoundError(
+                "Nie znaleziono pliku wejściowego:\n"
+                f"{input_file}"
+            )
+
+        update_job(
+            job_id,
+            status="running",
+            progress=0.10,
+            message="Wyodrębnianie strumieni...",
+        )
+
+        video_output, audio_output = split_media(
+            project_path=project_path,
+            input_file=input_file,
+        )
+
+        update_job(
+            job_id,
+            status="running",
+            progress=0.90,
+            message="Zapisywanie informacji o plikach...",
+        )
+
+        project_info = load_project_info(project_path)
+        files = project_info.get("files", [])
+
+        existing_names = {
+            file_entry.get("name")
+            for file_entry in files
+        }
+
+        result_files = [
+            (video_output, "video/mp4"),
+            (audio_output, "audio/mp4"),
+        ]
+
+        output_files = []
+
+        for file_path, file_type in result_files:
+            if file_path.name not in existing_names:
+                files.append({
+                    "name": file_path.name,
+                    "size": file_path.stat().st_size,
+                    "type": file_type,
+                    "source": "result",
+                })
+
+            output_files.append(file_path.name)
+
+        project_info["files"] = files
+
+        save_project_info(
+            project_path,
+            project_info,
+        )
+
+        update_job(
+            job_id,
+            status="completed",
+            progress=1.0,
+            message="Audio i video zostały rozdzielone.",
+            output_files=output_files,
+        )
+
+    except Exception as error:
+        update_job(
+            job_id,
+            status="failed",
+            progress=0.0,
+            message="Rozdzielanie audio i video zakończyło się błędem.",
+            error=str(error),
+        )
+
+
+from modules.merge_media import merge_media
+
+
+def run_merge_media_job(
+    *,
+    job_id: str,
+    project_path: Path,
+    input_file: Path,
+    parameters: dict[str, Any],
+) -> None:
+
+    try:
+        update_job(
+            job_id,
+            status="running",
+            progress=0.05,
+            message="Wczytywanie ustawień łączenia...",
+        )
+
+        audio_filename = parameters.get(
+            "audio_file"
+        )
+
+        if not audio_filename:
+            raise ValueError(
+                "Nie wskazano pliku audio."
+            )
+
+        audio_file = (
+            project_path / audio_filename
+        )
+
+        if not input_file.exists():
+            raise FileNotFoundError(
+                "Nie znaleziono pliku video:\n"
+                f"{input_file}"
+            )
+
+        if not audio_file.exists():
+            raise FileNotFoundError(
+                "Nie znaleziono pliku audio:\n"
+                f"{audio_file}"
+            )
+
+        update_job(
+            job_id,
+            status="running",
+            progress=0.10,
+            message="Łączenie video i audio...",
+        )
+
+        output_file = merge_media(
+            project_path=project_path,
+            video_file=input_file,
+            audio_file=audio_file,
+        )
+
+        update_job(
+            job_id,
+            status="running",
+            progress=0.90,
+            message="Zapisywanie informacji o pliku...",
+        )
+
+        project_info = load_project_info(
+            project_path
+        )
+
+        files = project_info.get(
+            "files",
+            []
+        )
+
+        existing_names = {
+            file_entry.get("name")
+            for file_entry in files
+        }
+
+        if output_file.name not in existing_names:
+            files.append({
+                "name": output_file.name,
+                "size": output_file.stat().st_size,
+                "type": "video/mp4",
+                "source": "result",
+            })
+
+        project_info["files"] = files
+
+        save_project_info(
+            project_path,
+            project_info,
+        )
+
+        update_job(
+            job_id,
+            status="completed",
+            progress=1.0,
+            message="Video i audio zostały połączone.",
+            output_files=[
+                output_file.name
+            ],
+        )
+
+    except Exception as error:
+        update_job(
+            job_id,
+            status="failed",
+            progress=0.0,
+            message="Łączenie video i audio zakończyło się błędem.",
+            error=str(error),
+        )

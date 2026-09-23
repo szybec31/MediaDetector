@@ -47,6 +47,67 @@ interface ProjectModule {
   path: string;
 }
 
+type JsonTableRow = {
+  id: number | string;
+  start?: number | string;
+  end?: number | string;
+  text?: string;
+  word?: string;
+  normalized_word?: string;
+  duration?: number | string;
+};
+
+const getJsonTableRows = (
+  content: string
+): JsonTableRow[] | null => {
+  try {
+    const parsed = JSON.parse(content);
+
+    if (Array.isArray(parsed.segments)) {
+      return parsed.segments.map(
+        (item: any, index: number) => ({
+          id: item.id ?? index,
+          start: item.start,
+          end: item.end,
+          text: item.text,
+        })
+      );
+    }
+
+    if (Array.isArray(parsed.matches)) {
+      return parsed.matches.map(
+        (item: any, index: number) => ({
+          id: index,
+          start: item.start,
+          end: item.end,
+          word: item.word,
+          normalized_word: item.normalized_word,
+          duration: item.duration,
+        })
+      );
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+const formatTime = (value: number | string) => {
+  const seconds = Number(value);
+
+  if (!Number.isFinite(seconds)) {
+    return String(value);
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+
+  return (
+    `${String(minutes).padStart(2, "0")}:` +
+    `${remainingSeconds.toFixed(3).padStart(6, "0")}`
+  );
+};
 
 function ProjectDetailsPage() {
   const { projectId } = useParams();
@@ -62,7 +123,8 @@ function ProjectDetailsPage() {
   const [previewContent, setPreviewContent] = useState<string>("");
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState("");
-
+  const [jsonTableRows, setJsonTableRows] =useState<JsonTableRow[] | null>(null);
+  
   const projectModules: ProjectModule[] = [
   {
     id: "file-upload",
@@ -102,16 +164,16 @@ function ProjectDetailsPage() {
   },
   // In progress
   {
-    id: "audio-only",
-    label: t.ProjectDetailsModuleButtons.audioonly,
-    kind: "audio",
-    path: `/projects/${projectId}/modules/audio-only`,
+    id: "split-media",
+    label: t.ProjectDetailsModuleButtons.split_media,
+    kind: "video",
+    path: `/projects/${projectId}/modules/split-media`,
   },
   {
     id: "video-only",
-    label: t.ProjectDetailsModuleButtons.videoonly,
+    label: t.ProjectDetailsModuleButtons.merge_media,
     kind: "video",
-    path: `/projects/${projectId}/modules/video-only`,
+    path: `/projects/${projectId}/modules/merge-media`,
   },
   {
     id: "blurowanie-twarzy",
@@ -287,47 +349,56 @@ function ProjectDetailsPage() {
   }
   };
 
-  const handleOpenFile = async (file: ProjectFile) => {
-    setSelectedFile(file);
-    setPreviewContent("");
-    setPreviewError("");
+ const handleOpenFile = async (file: ProjectFile) => {
+  setSelectedFile(file);
+  setPreviewContent("");
+  setPreviewError("");
 
-    if (!isTextFile(file)) {
-      return;
-    }
+  if (!isTextFile(file)) {
+    return;
+  }
 
-    try {
-      setPreviewLoading(true);
+  try {
+    setPreviewLoading(true);
 
-      const encodedFilename = encodeURIComponent(file.name);
+    const encodedFilename = encodeURIComponent(file.name);
 
-      const response = await fetch(
-        `http://localhost:8000/api/projects/${projectId}/files/download/${encodedFilename}`
+    const response = await fetch(
+      `http://localhost:8000/api/projects/${projectId}/files/download/${encodedFilename}`
+    );
+
+    if (!response.ok) {
+      const data = await response.json();
+
+      throw new Error(
+        data.detail || "Nie udało się odczytać pliku."
       );
-
-      if (!response.ok) {
-        const data = await response.json();
-
-        throw new Error(
-          data.detail || "Nie udało się odczytać pliku."
-        );
-      }
-
-      const content = await response.text();
-
-      setPreviewContent(content);
-    } catch (error) {
-      console.error(error);
-
-      if (error instanceof Error) {
-        setPreviewError(error.message);
-      } else {
-        setPreviewError("Nie udało się odczytać pliku.");
-      }
-    } finally {
-      setPreviewLoading(false);
     }
-  };
+
+    const content = await response.text();
+
+    setPreviewContent(content);
+
+    // TYLKO dodatkowa obsługa JSON
+    if (file.name.toLowerCase().endsWith(".json")) {
+      setJsonTableRows(getJsonTableRows(content));
+    } else {
+      setJsonTableRows(null);
+    }
+  } catch (error) {
+    console.error(error);
+
+    if (error instanceof Error) {
+      setPreviewError(error.message);
+    } else {
+      setPreviewError(
+        "Nie udało się odczytać pliku."
+      );
+    }
+  } finally {
+    setPreviewLoading(false);
+  }
+};
 
   const getFileUrl = (filename: string) => {
     const encodedFilename = encodeURIComponent(filename);
@@ -485,11 +556,56 @@ function ProjectDetailsPage() {
                           {previewError}
                         </div>
                       )}
-
                       {!previewLoading && !previewError && (
-                        <pre className="project-preview-text">
-                          {previewContent}
-                        </pre>
+                        jsonTableRows ? (
+                          <div className="json-table-wrapper">
+                            <table className="json-table">
+                              <thead>
+                                <tr>
+                                  <th>ID</th>
+                                  <th>Start</th>
+                                  <th>End</th>
+
+                                  {jsonTableRows.some(
+                                    (row) => row.word !== undefined
+                                  ) ? (
+                                    <>
+                                      <th>Słowo</th>
+                                      <th>Normalizacja</th>
+                                      <th>Czas trwania</th>
+                                    </>
+                                  ) : (
+                                    <th>Tekst</th>
+                                  )}
+                                </tr>
+                              </thead>
+
+                              <tbody>
+                                {jsonTableRows.map((row) => (
+                                  <tr key={row.id}>
+                                    <td>{row.id}</td>
+                                    <td>{formatTime(row.start ?? "-")}</td>
+                                    <td>{formatTime(row.end ?? "-")}</td>
+
+                                    {row.word !== undefined ? (
+                                      <>
+                                        <td>{row.word}</td>
+                                        <td>{row.normalized_word ?? "-"}</td>
+                                        <td>{formatTime(row.duration ?? "-")}</td>
+                                      </>
+                                    ) : (
+                                      <td>{row.text ?? "-"}</td>
+                                    )}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <pre className="project-preview-text">
+                            {previewContent}
+                          </pre>
+                        )
                       )}
                     </>
                   )}
@@ -509,6 +625,7 @@ function ProjectDetailsPage() {
                       setSelectedFile(null);
                       setPreviewContent("");
                       setPreviewError("");
+                      setJsonTableRows(null)
                     }}
                   >
                     Zamknij podgląd

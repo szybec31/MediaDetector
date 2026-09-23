@@ -94,8 +94,8 @@ const pl = {
   ProjectDetailsModuleButtons: {
     fileupload: "Upload Plików",
     speachtotext: "Zamiana mowy na tekst",
-    audioonly:"Tylko audio",
-    videoonly:"Tylko video",
+    split_media:"Rozdziel video i audio",
+    merge_media:"Połącz video i audio",
     worddetection:"Wykrywanie słów z słownika",
     censor:"Cenzura Transkrypcji",
     mute:"Wyciszenie słów z słownika",
