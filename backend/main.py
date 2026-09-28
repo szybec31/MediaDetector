@@ -639,7 +639,6 @@ def delete_project_file(
 
 
 # --------------- Endpointy dotyczące modułów AI ---------------
-from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
@@ -1373,3 +1372,543 @@ def merge_media_status(
         output_files=job.output_files,
         error=job.error,
     )
+
+
+###########################################
+# Profile i zdjęcia do rozpoznawania
+###########################################
+import unicodedata
+from datetime import datetime, timezone
+from pydantic import BaseModel, Field
+
+BACKEND_DIR = Path(__file__).resolve().parent
+PROFILES_DIR = BACKEND_DIR / "profiles"
+PROFILES_FILE = PROFILES_DIR / "profiles.json"
+
+
+class ProfileCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+
+
+class ProfileUpdateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+
+
+def normalize_name(name: str) -> str:
+    """Normalizacja do sprawdzania unikalności nazw."""
+    return " ".join(name.split()).casefold()
+
+
+def make_safe_name(name: str) -> str:
+    """Uproszczona nazwa do przyszłych nazw plików zdjęć."""
+    normalized = unicodedata.normalize("NFKD", name)
+    ascii_name = normalized.encode("ascii", "ignore").decode("ascii")
+    safe_name = re.sub(r"[^a-zA-Z0-9]+", "_", ascii_name)
+    return safe_name.strip("_").lower() or "profil"
+
+
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def ensure_profiles_file() -> None:
+    PROFILES_DIR.mkdir(parents=True, exist_ok=True)
+
+    if not PROFILES_FILE.exists():
+        save_profiles_data({
+            "version": 1,
+            "next_profile_id": 1,
+            "profiles": [],
+        })
+
+def load_profiles_data() -> dict:
+    PROFILES_DIR.mkdir(parents=True, exist_ok=True)
+
+    if not PROFILES_FILE.exists():
+        data = {
+            "version": 1,
+            "next_profile_id": 1,
+            "profiles": [],
+        }
+        save_profiles_data(data)
+        return data
+
+    try:
+        content = PROFILES_FILE.read_text(encoding="utf-8")
+
+        # Pusty plik lub same spacje traktujemy jak brak profili.
+        if not content.strip():
+            data = {
+                "version": 1,
+                "next_profile_id": 1,
+                "profiles": [],
+            }
+            save_profiles_data(data)
+            return data
+
+        data = json.loads(content)
+
+    except json.JSONDecodeError as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Plik profiles.json zawiera niepoprawny JSON. "
+                "Nie został automatycznie nadpisany."
+            ),
+        ) from exc
+
+    except OSError as exc:
+        raise HTTPException(
+            status_code=500,
+            detail="Nie można odczytać pliku profiles.json.",
+        ) from exc
+
+    if not isinstance(data, dict):
+        raise HTTPException(
+            status_code=500,
+            detail="Nieprawidłowa struktura profiles.json.",
+        )
+
+    profiles = data.get("profiles", [])
+
+    if not isinstance(profiles, list):
+        raise HTTPException(
+            status_code=500,
+            detail="Pole 'profiles' w profiles.json musi być listą.",
+        )
+
+    data.setdefault("version", 1)
+
+    # W starszym pliku może nie być next_profile_id.
+    if not isinstance(data.get("next_profile_id"), int):
+        existing_ids = [
+            profile.get("id", 0)
+            for profile in profiles
+            if isinstance(profile, dict)
+            and isinstance(profile.get("id"), int)
+        ]
+        data["next_profile_id"] = max(existing_ids, default=0) + 1
+
+    return data
+
+
+def save_profiles_data(data: dict) -> None:
+    PROFILES_DIR.mkdir(parents=True, exist_ok=True)
+
+    temp_file = PROFILES_FILE.with_suffix(".json.tmp")
+
+    try:
+        with temp_file.open("w", encoding="utf-8") as file:
+            json.dump(data, file, ensure_ascii=False, indent=2)
+
+        temp_file.replace(PROFILES_FILE)
+    except OSError:
+        raise HTTPException(
+            status_code=500,
+            detail="Nie można zapisać pliku profiles.json.",
+        )
+
+
+def clean_profile_name(name: str) -> str:
+    cleaned = " ".join(name.split())
+
+    if not cleaned:
+        raise HTTPException(
+            status_code=422,
+            detail="Nazwa profilu nie może być pusta.",
+        )
+
+    return cleaned
+
+
+def find_profile(data: dict, profile_id: int) -> dict:
+    for profile in data["profiles"]:
+        if profile.get("id") == profile_id:
+            return profile
+
+    raise HTTPException(
+        status_code=404,
+        detail="Nie znaleziono profilu.",
+    )
+
+
+def ensure_unique_name(
+    data: dict,
+    name: str,
+    exclude_profile_id: int | None = None,
+) -> None:
+    normalized = normalize_name(name)
+
+    for profile in data["profiles"]:
+        if profile.get("id") == exclude_profile_id:
+            continue
+
+        if normalize_name(profile.get("name", "")) == normalized:
+            raise HTTPException(
+                status_code=409,
+                detail="Profil o takiej nazwie już istnieje.",
+            )
+
+
+def remove_profile_photos(profile: dict) -> None:
+    """
+    Usuwa pliki zdjęć należące do profilu.
+    Akceptuje wyłącznie nazwy plików, bez ścieżek.
+    """
+    for photo in profile.get("photos", []):
+        filename = photo.get("filename")
+
+        if not isinstance(filename, str):
+            continue
+
+        # Zabezpieczenie przed ścieżkami spoza katalogu profili.
+        if Path(filename).name != filename:
+            continue
+
+        photo_path = PROFILES_DIR / filename
+
+        try:
+            photo_path.unlink(missing_ok=True)
+        except OSError:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Nie można usunąć zdjęcia: {filename}",
+            )
+
+@app.get("/api/profiles")
+def get_profiles():
+    data = load_profiles_data()
+
+    result = []
+
+    for profile in data.get("profiles", []):
+        if not isinstance(profile, dict):
+            continue
+
+        photos = []
+
+        for photo in profile.get("photos", []):
+            if not isinstance(photo, dict):
+                continue
+
+            embedding = photo.get("embedding")
+            if not isinstance(embedding, dict):
+                embedding = {}
+
+            photos.append({
+                "id": photo.get("id"),
+                "filename": photo.get("filename", ""),
+                "uploaded_at": photo.get("uploaded_at"),
+                "embedding_status": embedding.get("status"),
+            })
+
+        result.append({
+            "id": profile.get("id"),
+            "name": profile.get("name", ""),
+            "created_at": profile.get("created_at"),
+            "photos": photos,
+        })
+
+    return {"profiles": result}
+
+
+@app.post("/api/profiles", status_code=201)
+def create_profile(request: ProfileCreateRequest):
+    data = load_profiles_data()
+
+    name = clean_profile_name(request.name)
+    ensure_unique_name(data, name)
+
+    profile_id = data["next_profile_id"]
+    data["next_profile_id"] = profile_id + 1
+
+    profile = {
+        "id": profile_id,
+        "name": name,
+        "safe_name": make_safe_name(name),
+        "created_at": now_iso(),
+        "photos": [],
+    }
+
+    data["profiles"].append(profile)
+    save_profiles_data(data)
+
+    return profile
+
+
+@app.patch("/api/profiles/{profile_id}")
+def update_profile(
+    profile_id: int,
+    request: ProfileUpdateRequest,
+):
+    data = load_profiles_data()
+    profile = find_profile(data, profile_id)
+
+    name = clean_profile_name(request.name)
+    ensure_unique_name(data, name, exclude_profile_id=profile_id)
+
+    profile["name"] = name
+    profile["safe_name"] = make_safe_name(name)
+
+    save_profiles_data(data)
+
+    return profile
+
+
+@app.delete("/api/profiles/{profile_id}")
+def delete_profile(profile_id: int):
+    data = load_profiles_data()
+    profile = find_profile(data, profile_id)
+
+    # Najpierw usuwamy zdjęcia przypisane do profilu.
+    remove_profile_photos(profile)
+
+    data["profiles"] = [
+        item
+        for item in data["profiles"]
+        if item.get("id") != profile_id
+    ]
+
+    # next_profile_id pozostaje bez zmian, więc ID nie jest ponownie używane.
+    save_profiles_data(data)
+
+    return {
+        "message": "Profil został usunięty.",
+        "profile_id": profile_id,
+    }
+
+
+@app.post("/api/profiles/{profile_id}/photos", status_code=201)
+async def add_profile_photos(
+    profile_id: int,
+    files: list[UploadFile] = File(...),
+):
+    if not files:
+        raise HTTPException(
+            status_code=400,
+            detail="Nie przesłano żadnych zdjęć.",
+        )
+
+    data = load_profiles_data()
+    profile = find_profile(data, profile_id)
+
+    allowed_extensions = {".jpg", ".jpeg", ".png", ".webp"}
+    max_file_size = 15 * 1024 * 1024  # 15 MB na zdjęcie
+
+    # Licznik zapisujemy w profilu, żeby ID zdjęć nie były ponownie używane.
+    if "next_photo_id" not in profile:
+        existing_ids = [
+            photo.get("id", 0)
+            for photo in profile.get("photos", [])
+            if isinstance(photo.get("id"), int)
+        ]
+        profile["next_photo_id"] = max(existing_ids, default=0) + 1
+
+    profile.setdefault("photos", [])
+
+    saved_files = []
+    added_photos = []
+
+    try:
+        for upload in files:
+            original_name = upload.filename or ""
+            extension = Path(original_name).suffix.lower()
+
+            if extension not in allowed_extensions:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Nieobsługiwany format pliku: {original_name}. "
+                        "Dozwolone formaty: JPG, PNG, WEBP."
+                    ),
+                )
+
+            if not upload.content_type or not upload.content_type.startswith("image/"):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Plik nie jest obrazem: {original_name}",
+                )
+
+            content = await upload.read()
+
+            if not content:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Plik jest pusty: {original_name}",
+                )
+
+            if len(content) > max_file_size:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"Plik przekracza limit 15 MB: {original_name}",
+                )
+
+            photo_id = profile["next_photo_id"]
+            profile["next_photo_id"] += 1
+
+            safe_name = profile.get("safe_name") or make_safe_name(
+                profile["name"]
+            )
+
+            filename = (
+                f"{safe_name}_{profile_id}_{photo_id}{extension}"
+            )
+
+            # Nazwa jest generowana przez backend, a nie przyjmowana od klienta.
+            destination = PROFILES_DIR / filename
+            destination.write_bytes(content)
+            saved_files.append(destination)
+
+            photo = {
+                "id": photo_id,
+                "filename": filename,
+                "uploaded_at": now_iso(),
+                "embedding": {
+                    "model": None,
+                    "model_version": None,
+                    "vector": None,
+                    "status": "pending",
+                },
+            }
+
+            profile["photos"].append(photo)
+            added_photos.append(photo)
+
+        save_profiles_data(data)
+
+    except HTTPException:
+        # Jeśli walidacja któregoś pliku się nie powiedzie,
+        # usuwamy pliki zapisane w trakcie tego żądania.
+        for path in saved_files:
+            path.unlink(missing_ok=True)
+        raise
+
+    except OSError:
+        for path in saved_files:
+            path.unlink(missing_ok=True)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Nie udało się zapisać zdjęć profilu.",
+        )
+
+    return {
+        "message": "Zdjęcia zostały dodane.",
+        "profile_id": profile_id,
+        "photos": added_photos,
+    }
+
+
+@app.delete("/api/profiles/{profile_id}/photos/{photo_id}")
+def delete_profile_photo(
+    profile_id: int,
+    photo_id: int,
+):
+    data = load_profiles_data()
+
+    profile = next(
+        (
+            item
+            for item in data.get("profiles", [])
+            if isinstance(item, dict)
+            and str(item.get("id")) == str(profile_id)
+        ),
+        None,
+    )
+
+    if profile is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Nie znaleziono profilu o ID {profile_id}.",
+        )
+
+    photos = profile.get("photos", [])
+
+    photo = next(
+        (
+            item
+            for item in photos
+            if isinstance(item, dict)
+            and str(item.get("id")) == str(photo_id)
+        ),
+        None,
+    )
+
+    if photo is None:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"Nie znaleziono zdjęcia o ID {photo_id} "
+                f"w profilu {profile_id}."
+            ),
+        )
+
+    filename = photo.get("filename")
+
+    # Najpierw weryfikujemy nazwę, by nie usunąć pliku poza katalogiem.
+    photo_path = None
+
+    if isinstance(filename, str) and filename:
+        if Path(filename).name != filename:
+            raise HTTPException(
+                status_code=400,
+                detail="Nieprawidłowa nazwa pliku zdjęcia.",
+            )
+
+        photo_path = PROFILES_DIR / filename
+
+    # Usuwamy zdjęcie z JSON-a.
+    profile["photos"] = [
+        item
+        for item in photos
+        if not (
+            isinstance(item, dict)
+            and str(item.get("id")) == str(photo_id)
+        )
+    ]
+
+    save_profiles_data(data)
+
+    # Brak pliku na dysku nie blokuje usunięcia wpisu.
+    if photo_path is not None:
+        try:
+            photo_path.unlink(missing_ok=True)
+        except OSError as exc:
+            raise HTTPException(
+                status_code=500,
+                detail=(
+                    "Usunięto wpis zdjęcia z profilu, "
+                    "ale nie udało się usunąć pliku z dysku."
+                ),
+            ) from exc
+
+    return {
+        "message": "Zdjęcie zostało usunięte.",
+        "profile_id": profile_id,
+        "photo_id": photo_id,
+    }
+
+
+@app.get("/api/profiles/photos/{filename}")
+def get_profile_photo(filename: str):
+    # Blokada prób odczytu plików spoza katalogu zdjęć
+    if Path(filename).name != filename:
+        raise HTTPException(
+            status_code=400,
+            detail="Nieprawidłowa nazwa pliku.",
+        )
+
+    photo_path = PROFILES_DIR / filename
+
+    if not photo_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Nie znaleziono zdjęcia: {filename}",
+        )
+
+    return FileResponse(photo_path)
+
+
+###########################################
+# Profile i zdjęcia do rozpoznawania
+###########################################

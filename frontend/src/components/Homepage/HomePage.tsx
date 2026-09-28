@@ -62,7 +62,8 @@ function HomePage() {
   };
 
   const handleNewPerson = () => {
-    console.log("New person");
+    navigate("/profiles");
+    console.log("Profiles");
   };
 
   const handleProfanityDictionary = () => {
