@@ -8,6 +8,7 @@ import ProjectDetailsPage from "./components/ProjectDetails/ProjectDetailsPage";
 
 import AddSourceFile from "./components/Modules/AddSourceFile/AddSourceFile";
 import ModulePage from "./components/Modules/ModulePage";
+import ProfilePage from "./components/Profiles/Profiles";
 
 function App() {
   return (
@@ -26,6 +27,11 @@ function App() {
         <Route
           path="/profanity-dictionary"
           element={<ProfanityDictionaryPage />}
+        />
+
+        <Route
+          path="/profiles"
+          element={<ProfilePage />}
         />
 
         <Route
