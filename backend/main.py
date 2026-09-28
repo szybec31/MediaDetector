@@ -1910,5 +1910,5 @@ def get_profile_photo(filename: str):
 
 
 ###########################################
-# Profile i zdjęcia do rozpoznawania
+# Moduł rozpoznawania i blurowania twarzy
 ###########################################
