@@ -162,7 +162,6 @@ function ProjectDetailsPage() {
     kind: "video",
     path: `/projects/${projectId}/modules/subtitles`,
   },
-  // In progress
   {
     id: "split-media",
     label: t.ProjectDetailsModuleButtons.split_media,
@@ -176,10 +175,10 @@ function ProjectDetailsPage() {
     path: `/projects/${projectId}/modules/merge-media`,
   },
   {
-    id: "blurowanie-twarzy",
+    id: "face-blur",
     label: t.ProjectDetailsModuleButtons.selectiveblur,
     kind: "video",
-    path: `/projects/${projectId}/modules/blur`,
+    path: `/projects/${projectId}/modules/face-blur`,
   },
 ];
 

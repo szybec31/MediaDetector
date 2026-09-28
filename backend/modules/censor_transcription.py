@@ -32,6 +32,12 @@ def normalize_word(word: str) -> str:
         .strip(".,!?;:\"'()[]{}")
     )
 
+def format_timestamp(seconds: float) -> str:
+    total_ms = round(seconds * 1000)
+    minutes, remainder = divmod(total_ms, 60_000)
+    seconds, milliseconds = divmod(remainder, 1000)
+
+    return f"{minutes:02}:{seconds:02}.{milliseconds:03}"
 
 def censor_transcription(
     project_path: Path,
@@ -97,11 +103,16 @@ def censor_transcription(
 
         corrected_segments.append(corrected_segment)
 
-    corrected_full_text = "\n".join(
-        segment["text"]
-        for segment in corrected_segments
-        if segment.get("text")
-    )
+    txt_lines = []
+
+    for segment in corrected_segments:
+        start = format_timestamp(segment["start"])
+        end = format_timestamp(segment["end"])
+        text = segment["text"]
+
+        txt_lines.append(f"{start}-{end}    {text}")
+
+    corrected_full_text = "\n".join(txt_lines)
 
     timestamp = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
 

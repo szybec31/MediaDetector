@@ -24,6 +24,12 @@ def get_model() -> WhisperModel:
 
     return _model
 
+def format_timestamp(seconds: float) -> str:
+    total_ms = round(seconds * 1000)
+    minutes, remainder = divmod(total_ms, 60_000)
+    seconds, milliseconds = divmod(remainder, 1000)
+
+    return f"{minutes:02}:{seconds:02}.{milliseconds:03}"
 
 def transcribe_audio(
     project_path: Path,
@@ -101,7 +107,16 @@ def transcribe_audio(
     txt_path = project_path / f"transcription_{timestamp}.txt"
     json_path = project_path / f"transcription_{timestamp}.json"
 
-    txt_content = "\n".join(full_text)
+    txt_lines = []
+
+    for segment in transcription_segments:
+        start = format_timestamp(segment["start"])
+        end = format_timestamp(segment["end"])
+        text = segment["text"]
+
+        txt_lines.append(f"{start}-{end}    {text}")
+
+    txt_content = "\n".join(txt_lines)
 
     txt_path.write_text(
         txt_content,

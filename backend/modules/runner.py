@@ -835,3 +835,5 @@ def run_merge_media_job(
             message="Łączenie video i audio zakończyło się błędem.",
             error=str(error),
         )
+
+from modules.face_blur import selective_face_blur

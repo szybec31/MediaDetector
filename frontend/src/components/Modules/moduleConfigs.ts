@@ -167,4 +167,89 @@ export const moduleConfigs: Record<string, ModuleConfig> = {
     runEndpoint: "/api/modules/merge-media/run",
     statusEndpoint: "/api/modules/merge-media/status",
   },
+
+  "face-blur": {
+    id: "face-blur",
+    title: "Rozpoznawanie i rozmywanie twarzy",
+    description:
+      "Rozpoznaje twarze wybranych profili i rozmywa pozostałe osoby.",
+    acceptedFileTypes: ["video"],
+    parameters: [
+      {
+        id: "provider",
+        label: "Urządzenie obliczeniowe",
+        type: "select",
+        defaultValue: "auto",
+        options: [
+          { label: "Automatycznie (CUDA lub CPU)", value: "auto" },
+          { label: "NVIDIA CUDA", value: "cuda" },
+          { label: "CPU", value: "cpu" },
+        ],
+      },
+      {
+        id: "det_size",
+        label: "Rozmiar detekcji",
+        type: "select",
+        defaultValue: 960,
+        options: [
+          { label: "640 — szybciej", value: "640" },
+          { label: "800", value: "800" },
+          { label: "960 — zalecane na test", value: "960" },
+          { label: "1280 — większy rozmiar", value: "1280" },
+        ],
+      },
+      {
+        id: "recognition_threshold",
+        label: "Próg rozpoznawania",
+        type: "number",
+        defaultValue: 0.45,
+        min: 0,
+        max: 1,
+        step: 0.01,
+      },
+      {
+        id: "blur_padding",
+        label: "Margines rozmycia",
+        type: "number",
+        defaultValue: 0.35,
+        min: 0,
+        max: 1,
+        step: 0.05,
+      },
+      {
+        id: "blur_kernel",
+        label: "Siła rozmycia",
+        type: "select",
+        defaultValue: 51,
+        options: [
+          { label: "31", value: "31" },
+          { label: "51", value: "51" },
+          { label: "71", value: "71" },
+        ],
+      },
+      {
+        id: "ffmpeg_preset",
+        label: "Szybkość kodowania",
+        type: "select",
+        defaultValue: "veryfast",
+        options: [
+          { label: "Ultrafast", value: "ultrafast" },
+          { label: "Veryfast", value: "veryfast" },
+          { label: "Fast", value: "fast" },
+          { label: "Medium", value: "medium" },
+        ],
+      },
+      {
+        id: "ffmpeg_crf",
+        label: "Jakość pliku wynikowego (CRF)",
+        type: "number",
+        defaultValue: 20,
+        min: 0,
+        max: 51,
+        step: 1,
+      },
+    ],
+    runEndpoint: "/api/modules/face-blur/run",
+    statusEndpoint: "/api/modules/face-blur/status",
+  }
 };

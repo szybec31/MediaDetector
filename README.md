@@ -242,8 +242,10 @@ cd backend
 
 Activate the Python virtual environment:
 
-```bash
-source .venv/bin/activate
+```windows
+py -3.12 -m venv .venv312
+.\.venv312\Scripts\Activate.ps1
+python --version
 ```
 
 Start the development server:

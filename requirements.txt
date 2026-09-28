@@ -1,6 +1,8 @@
-fastapi 
-uvicorn
-uvicorn[standard] 
+fastapi
+uvicorn[standard]
 python-multipart
-fastapi-cors
 faster-whisper
+numpy==2.2.6
+insightface==1.0.1
+onnxruntime==1.28.0
+opencv-python==4.12.0.88
